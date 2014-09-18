@@ -1,0 +1,2 @@
+module HasArrayOf
+end
