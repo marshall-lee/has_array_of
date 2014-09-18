@@ -1,3 +1,3 @@
-= HasArrayOf
+= has_array_of
 
-This project rocks and uses MIT-LICENSE.
+This project just rocks.
