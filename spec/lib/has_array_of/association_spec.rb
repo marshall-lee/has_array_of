@@ -1,4 +1,4 @@
-require 'rails_helper'
+require 'spec_helper'
 
 RSpec.describe HasArrayOf::Association do
   describe ActiveRecord::Base do

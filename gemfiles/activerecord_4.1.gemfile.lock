@@ -1,5 +1,5 @@
 PATH
-  remote: .
+  remote: ../
   specs:
     has_array_of (0.0.1)
       activerecord (>= 3.1)
@@ -113,6 +113,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  activerecord (~> 4.1)
   appraisal
   guard
   guard-rspec

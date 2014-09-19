@@ -12,3 +12,10 @@ gemspec
 
 # To use debugger
 # gem 'debugger'
+
+group :local_development do
+  gem 'guard'
+  gem 'guard-rspec'
+  gem 'appraisal'
+  gem 'rake'
+end
