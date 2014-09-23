@@ -27,4 +27,5 @@ RSpec.configure do |config|
   Kernel.srand config.seed
 end
 
+require 'support/db'
 require 'support/with_model'
