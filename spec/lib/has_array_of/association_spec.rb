@@ -63,5 +63,25 @@ RSpec.describe HasArrayOf::Association do
         expect(playlist.video_ids).to eq(expected_ids)
       end
     end
+
+    describe "associated collection appender" do
+      it "should respond to append method" do
+        expect(playlist.videos).to respond_to(:<<)
+      end
+
+      it "should reflect changes" do
+        video = another_videos[0]
+        playlist.videos << video
+        expected_videos = [*playlist_videos, video]
+        expect(playlist.videos).to eq(expected_videos)
+      end
+
+      it "should modify ids" do
+        video = another_videos[0]
+        playlist.videos << video
+        expected_ids = [*playlist_videos, video].map(&:id)
+        expect(playlist.video_ids).to eq(expected_ids)
+      end
+    end
   end
 end
