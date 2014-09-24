@@ -22,12 +22,12 @@ RSpec.describe HasArrayOf::Association do
       end
     end
 
-    before do
-      # create another videos
-      Video.create(title: "my little pony season 01 episode 01")
-      Video.create(title: "my little pony season 01 episode 02")
-    end
-    let(:playlist_videos) {
+    let!(:another_videos) {
+      [ Video.create(title: "my little pony season 01 episode 01"),
+        Video.create(title: "my little pony season 01 episode 02") ]
+    }
+
+    let!(:playlist_videos) {
       [ Video.create(title: "crazy show about unicorns episode 1"),
         Video.create(title: "crazy show about unicorns episode 2") ]
     }
@@ -36,13 +36,32 @@ RSpec.describe HasArrayOf::Association do
       Playlist.create(video_ids: playlist_videos.map(&:id))
     }
 
-    it "should respond to scope method" do
-      expect(playlist).to respond_to(:videos)
+    describe "associated collection reader" do
+      it "should respond to scope method" do
+        expect(playlist).to respond_to(:videos)
+      end
+
+      it "should fetch correct objects" do
+        expect(Video.count).to eq(4)
+        expect(playlist.videos).to contain_exactly(*playlist_videos)
+      end
     end
 
-    it "should fetch correct videos" do
-      expect(Video.count).to eq(4)
-      expect(playlist.videos).to contain_exactly(*playlist_videos)
+    describe "associated collection assigner" do
+      it "should respond to assignment method" do
+        expect(playlist).to respond_to(:videos=)
+      end
+      
+      it "should reflect changes" do
+        playlist.videos = another_videos
+        expect(playlist.videos).to eq(another_videos)
+      end
+
+      it "should modify ids" do
+        playlist.videos = another_videos
+        expected_ids = another_videos.map(&:id)
+        expect(playlist.video_ids).to eq(expected_ids)
+      end
     end
   end
 end

@@ -22,8 +22,18 @@ module HasArrayOf
         class_name = (options[:class_name] || singular_name.camelize).to_s
         ids_name = "#{singular_name}_ids".to_sym
         model = class_name.constantize
+
         define_method name do
           model.where(model.arel_table[model.primary_key].in(send(ids_name)))
+        end
+
+        define_method "#{name}=" do |objects|
+          ids = if objects.respond_to? :pluck
+                  objects.pluck(model.primary_key)
+                else
+                  objects.map { |obj| obj.send model.primary_key }
+                end
+          write_attribute(ids_name, ids)
         end
       end
     end
