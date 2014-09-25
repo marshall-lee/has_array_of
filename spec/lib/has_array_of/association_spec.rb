@@ -51,7 +51,7 @@ RSpec.describe HasArrayOf::Association do
       it "should respond to assignment method" do
         expect(playlist).to respond_to(:videos=)
       end
-      
+
       it "should reflect changes" do
         playlist.videos = another_videos
         expect(playlist.videos).to eq(another_videos)
@@ -71,9 +71,18 @@ RSpec.describe HasArrayOf::Association do
 
       it "should reflect changes" do
         video = another_videos[0]
-        playlist.videos << video
+        videos = playlist.videos
+        videos << video
         expected_videos = [*playlist_videos, video]
-        expect(playlist.videos).to eq(expected_videos)
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        video = another_videos[0]
+        videos = playlist.videos.load
+        videos << video
+        expected_videos = [*playlist_videos, video]
+        expect(videos).to eq(expected_videos)
       end
 
       it "should modify ids" do

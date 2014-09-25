@@ -22,9 +22,26 @@ module HasArrayOf
         class_name = (options[:class_name] || singular_name.camelize).to_s
         ids_name = "#{singular_name}_ids".to_sym
         model = class_name.constantize
+        primary_key = model.primary_key
 
         define_method name do
-          model.where(model.arel_table[model.primary_key].in(send(ids_name)))
+          owner = self
+          ids = send(ids_name)
+          model.where(model.arel_table[primary_key].in(ids)).extending do
+            define_method :<< do |*objects|
+              owner.send(ids_name).concat(objects.map { |o| o.send(primary_key) })
+              if loaded?
+                @records.concat(objects)
+              end
+              self
+            end
+            define_method :to_a do
+              hash = super().reduce({}) do |memo, object|
+                memo.merge!(object.send(primary_key) => object)
+              end
+              ids.map { |id| hash[id] }.compact
+            end
+          end
         end
 
         define_method "#{name}=" do |objects|
