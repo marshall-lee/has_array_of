@@ -85,6 +85,15 @@ RSpec.describe HasArrayOf::Association do
         expect(videos).to eq(expected_videos)
       end
 
+      it "should modify to_sql" do
+        video = another_videos[0]
+        videos = playlist.videos
+        expect(videos.to_sql).to include("(#{playlist_videos.map(&:id).join(', ')})")
+        videos << video
+        expected_videos = [*playlist_videos, video]
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
       it "should modify ids" do
         video = another_videos[0]
         playlist.videos << video

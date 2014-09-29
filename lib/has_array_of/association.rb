@@ -25,11 +25,11 @@ module HasArrayOf
         primary_key = model.primary_key
 
         define_method name do
-          owner = self
           ids = send(ids_name)
           model.where(model.arel_table[primary_key].in(ids)).extending do
             define_method :<< do |*objects|
-              owner.send(ids_name).concat(objects.map { |o| o.send(primary_key) })
+              ids.concat(objects.map { |o| o.send(primary_key) })
+              @to_sql = nil
               if loaded?
                 @records.concat(objects)
               end
