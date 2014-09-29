@@ -38,7 +38,8 @@ module HasArrayOf
             end
             define_method :to_a do
               hash = super().reduce({}) do |memo, object|
-                memo.merge!(object.send(primary_key) => object)
+                memo[object.send(primary_key)] = object
+                memo
               end
               ids.map { |id| hash[id] }.compact
             end
