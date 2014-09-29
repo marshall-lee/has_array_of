@@ -17,10 +17,9 @@ Gem::Specification.new do |s|
   s.files = Dir["{app,config,db,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.rdoc"]
 
   s.add_dependency 'pg'
-  s.add_runtime_dependency 'activerecord', '>= 3.1'
+  s.add_runtime_dependency 'activerecord', '>= 4.0'
 
-  s.add_development_dependency 'rspec', '~> 3.1'
-  s.add_development_dependency 'rspec-rails', '~> 3.1'
+  s.add_development_dependency 'rspec', '~> 3.1.2'
   s.add_development_dependency 'database_cleaner', '~> 1.3.0'
   s.add_development_dependency 'with_model'
 end
