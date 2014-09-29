@@ -28,13 +28,15 @@ module HasArrayOf
         define_method name do
           ids = send(ids_name)
           owner = self
-          model.where(model.arel_table[primary_key].in(ids)).extending do
+          query = model.arel_table[primary_key].in(ids)
+          model.where(query).extending do
             define_method :<< do |*objects|
+              reset
+              where_values.reject! { |v| v == query }
               ids.concat(objects.map(&primary_key_proc))
               owner.send(:write_attribute, ids_name, ids)
-              reset
-              unscope! where: primary_key
-              where! model.arel_table[primary_key].in(ids)
+              query = model.arel_table[primary_key].in(ids)
+              where! query
             end
             define_method :to_a do
               hash = super().reduce({}) do |memo, object|

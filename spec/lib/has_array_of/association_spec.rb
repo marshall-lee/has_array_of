@@ -108,6 +108,22 @@ RSpec.describe HasArrayOf::Association do
         videos << video
         expect(videos).not_to be_loaded
       end
+
+      describe "chaining with other queries" do
+        it "should work well with queries referencing fields other than primary_key" do
+          video = another_videos[0]
+          videos = playlist.videos.where("title like 'crazy%'")
+          videos << video
+          expect(videos).to eq(playlist_videos)
+        end
+
+        it "should work well with queries referencing primary_key" do
+          video = another_videos[0]
+          videos = playlist.videos.where(id: another_videos.map(&:id))
+          videos << video
+          expect(videos).to eq([video])
+        end
+      end
     end
   end
 end
