@@ -1,7 +1,3 @@
-appraise "activerecord-3.1" do
-  gem "activerecord", "~> 3.1"
-end
-
 appraise "activerecord-4.0" do
   gem "activerecord", "~> 4.0"
 end
