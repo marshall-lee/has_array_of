@@ -26,14 +26,14 @@ module HasArrayOf
 
         define_method name do
           ids = send(ids_name)
+          owner = self
           model.where(model.arel_table[primary_key].in(ids)).extending do
             define_method :<< do |*objects|
               ids.concat(objects.map { |o| o.send(primary_key) })
-              @to_sql = nil
-              if loaded?
-                @records.concat(objects)
-              end
-              self
+              owner.send(:write_attribute, ids_name, ids)
+              reset
+              unscope! where: primary_key
+              where! model.arel_table[primary_key].in(ids)
             end
             define_method :to_a do
               hash = super().reduce({}) do |memo, object|

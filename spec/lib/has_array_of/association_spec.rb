@@ -100,6 +100,14 @@ RSpec.describe HasArrayOf::Association do
         expected_ids = [*playlist_videos, video].map(&:id)
         expect(playlist.video_ids).to eq(expected_ids)
       end
+
+      it "should reset loaded state" do
+        video = another_videos[0]
+        videos = playlist.videos.load
+        expect(videos).to be_loaded
+        videos << video
+        expect(videos).not_to be_loaded
+      end
     end
   end
 end
