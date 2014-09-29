@@ -23,13 +23,14 @@ module HasArrayOf
         ids_name = "#{singular_name}_ids".to_sym
         model = class_name.constantize
         primary_key = model.primary_key
+        primary_key_proc = primary_key.to_sym.to_proc
 
         define_method name do
           ids = send(ids_name)
           owner = self
           model.where(model.arel_table[primary_key].in(ids)).extending do
             define_method :<< do |*objects|
-              ids.concat(objects.map { |o| o.send(primary_key) })
+              ids.concat(objects.map(&primary_key_proc))
               owner.send(:write_attribute, ids_name, ids)
               reset
               unscope! where: primary_key
