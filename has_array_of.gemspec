@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'pg'
   s.add_runtime_dependency 'activerecord', '>= 4.0'
 
-  s.add_development_dependency 'rspec', '~> 3.1.2'
+  s.add_development_dependency 'rspec', '~> 3.1.0'
   s.add_development_dependency 'database_cleaner', '~> 1.3.0'
   s.add_development_dependency 'with_model'
 end
