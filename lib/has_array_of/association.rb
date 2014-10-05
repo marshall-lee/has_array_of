@@ -58,8 +58,9 @@ module HasArrayOf
         end
       end
 
-      def belongs_to_array_in(name, options={})
-        singular_name = name.to_s.singularize
+      def contained_in_array_from(singular_name, options={})
+        singular_name = singular_name.to_s
+        name = singular_name.pluralize
         class_name = (options[:class_name] || singular_name.camelize).to_s
         ids_name = if options[:array_name]
                      "#{options[:array_name].to_s.singularize}_ids"

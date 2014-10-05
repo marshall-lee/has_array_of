@@ -4,7 +4,7 @@ RSpec.describe HasArrayOf::Association do
   describe ActiveRecord::Base do
     subject { described_class }
     it { should respond_to(:has_array_of) }
-    it { should respond_to(:belongs_to_array_in) }
+    it { should respond_to(:contained_in_array_from) }
   end
 
   describe "has_array_of scope" do
@@ -135,7 +135,7 @@ RSpec.describe HasArrayOf::Association do
       end
 
       model do
-        belongs_to_array_in :playlists
+        contained_in_array_from :playlist
       end
     end
 
