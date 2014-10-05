@@ -4,9 +4,10 @@ RSpec.describe HasArrayOf::Association do
   describe ActiveRecord::Base do
     subject { described_class }
     it { should respond_to(:has_array_of) }
+    it { should respond_to(:belongs_to_array_in) }
   end
 
-  describe "association scope" do
+  describe "has_array_of scope" do
     with_model :Video do
       table do |t|
         t.text :title
@@ -123,6 +124,58 @@ RSpec.describe HasArrayOf::Association do
           videos << video
           expect(videos).to eq([video])
         end
+      end
+    end
+  end
+
+  describe "belongs_to_array_in association" do
+    with_model :Video do
+      table do |t|
+        t.text :title
+      end
+
+      model do
+        belongs_to_array_in :playlists
+      end
+    end
+
+    with_model :Playlist do
+      table do |t|
+        t.integer :video_ids, array: true, default: []
+      end
+
+      model do
+        has_array_of :videos
+      end
+    end
+
+    let(:return_of_harmony) {
+      Video.create(title: "My Little Pony s02e01 'The Return of Harmony'")
+    }
+    let(:something_big) {
+      Video.create(title: "Adventure Time s06e10 'Something Big'")
+    }
+    let!(:adventure_time_season6) {
+      Playlist.create(videos: [something_big])
+    }
+    let!(:my_cool) {
+      Playlist.create(videos: [return_of_harmony, something_big])
+    }
+    let!(:mlp_season2) {
+      Playlist.create(videos: [return_of_harmony])
+    }
+
+    describe "associated collection reader" do
+      it "should respond to association method" do
+        expect(return_of_harmony).to respond_to(:playlists)
+      end
+
+      it "should fetch correct objects" do
+        expect(Video.count).to eq(2)
+        expect(something_big.playlists).to contain_exactly(adventure_time_season6,
+                                                           my_cool)
+        expect(return_of_harmony.playlists).to contain_exactly(mlp_season2,
+                                                               my_cool)
       end
     end
   end

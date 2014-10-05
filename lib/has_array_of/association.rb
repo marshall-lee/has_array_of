@@ -57,6 +57,21 @@ module HasArrayOf
           write_attribute(ids_name, ids)
         end
       end
+
+      def belongs_to_array_in(name, options={})
+        singular_name = name.to_s.singularize
+        class_name = (options[:class_name] || singular_name.camelize).to_s
+        ids_name = if options[:array_name]
+                     "#{options[:array_name].to_s.singularize}_ids"
+                   else
+                     "#{self.name.underscore}_ids"
+                   end
+        self_primary_key = self.primary_key
+        define_method name do
+          model = class_name.constantize
+          model.where("#{ids_name} @> ARRAY[#{send(self_primary_key)}]")
+        end
+      end
     end
   end
 end
