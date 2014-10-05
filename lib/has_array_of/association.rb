@@ -70,6 +70,19 @@ module HasArrayOf
           end
         end
 
+        define_singleton_method "with_#{name}_contained_in" do |arg, *args|
+          ary = if args.any?
+                  [arg, *args]
+                elsif arg.is_a? Array
+                  arg
+                end
+          if ary
+            where "#{ids_name} <@ ARRAY[#{ary.map(&primary_key_proc).join(',')}]"
+          else
+            where "#{ids_name} <@ ARRAY(#{arg.select(primary_key).to_sql})"
+          end
+        end
+
         define_singleton_method "with_any_#{singular_name}_from" do |arg, *args|
           ary = if args.any?
                   [arg, *args]
