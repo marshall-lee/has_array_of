@@ -20,13 +20,13 @@ module HasArrayOf
         end
         singular_name = name.to_s.singularize
         class_name = (options[:class_name] || singular_name.camelize).to_s
-        ids_name = "#{singular_name}_ids".to_sym
+        ids_method_name = "#{singular_name}_ids".to_sym
         model = class_name.constantize
         primary_key = model.primary_key
         primary_key_proc = primary_key.to_sym.to_proc
 
         define_method name do
-          ids = send(ids_name)
+          ids = send(ids_method_name)
           owner = self
           query = model.arel_table[primary_key].in(ids)
           model.where(query).extending do
@@ -34,7 +34,7 @@ module HasArrayOf
               reset
               where_values.reject! { |v| v == query }
               ids.concat(objects.map(&primary_key_proc))
-              owner.send(:write_attribute, ids_name, ids)
+              owner.send(:write_attribute, ids_method_name, ids)
               query = model.arel_table[primary_key].in(ids)
               where! query
             end
@@ -54,7 +54,7 @@ module HasArrayOf
                 else
                   objects.map { |obj| obj.send model.primary_key }
                 end
-          write_attribute(ids_name, ids)
+          write_attribute(ids_method_name, ids)
         end
 
         define_singleton_method "with_#{name}_containing" do |arg, *args|
@@ -64,9 +64,9 @@ module HasArrayOf
                   arg
                 end
           if ary
-            where "#{ids_name} @> ARRAY[#{ary.map(&primary_key_proc).join(',')}]"
+            where "#{ids_method_name} @> ARRAY[#{ary.map(&primary_key_proc).join(',')}]"
           else
-            where "#{ids_name} @> ARRAY(#{arg.select(primary_key).to_sql})"
+            where "#{ids_method_name} @> ARRAY(#{arg.select(primary_key).to_sql})"
           end
         end
 
@@ -77,9 +77,9 @@ module HasArrayOf
                   arg
                 end
           if ary
-            where "#{ids_name} <@ ARRAY[#{ary.map(&primary_key_proc).join(',')}]"
+            where "#{ids_method_name} <@ ARRAY[#{ary.map(&primary_key_proc).join(',')}]"
           else
-            where "#{ids_name} <@ ARRAY(#{arg.select(primary_key).to_sql})"
+            where "#{ids_method_name} <@ ARRAY(#{arg.select(primary_key).to_sql})"
           end
         end
 
@@ -90,9 +90,9 @@ module HasArrayOf
                   arg
                 end
           if ary
-            where "#{ids_name} && ARRAY[#{ary.map(&primary_key_proc).join(',')}]"
+            where "#{ids_method_name} && ARRAY[#{ary.map(&primary_key_proc).join(',')}]"
           else
-            where "#{ids_name} && ARRAY(#{arg.select(primary_key).to_sql})"
+            where "#{ids_method_name} && ARRAY(#{arg.select(primary_key).to_sql})"
           end
         end
       end
@@ -107,28 +107,28 @@ module HasArrayOf
                        self.name.underscore.pluralize
                      end
         singular_array_name = array_name.singularize
-        with_name = "with_#{array_name}_containing"
-        with_any_of_name = "with_any_#{singular_array_name}_from"
-        model_name = "_#{name}_model"
+        with_method_name = "with_#{array_name}_containing"
+        with_any_of_method_name = "with_any_#{singular_array_name}_from"
+        model_method_name = "_#{name}_model"
 
-        define_singleton_method model_name do
-          instance_variable_get("@_#{model_name}") or
-            instance_variable_set("@_#{model_name}", class_name.constantize)
+        define_singleton_method model_method_name do
+          instance_variable_get("@_#{model_method_name}") or
+            instance_variable_set("@_#{model_method_name}", class_name.constantize)
         end
 
         define_method name do
-          model = self.class.send(model_name)
-          model.send(with_name, [self])
+          model = self.class.send(model_method_name)
+          model.send(with_method_name, [self])
         end
 
         define_singleton_method "all_#{name}" do
-          model = self.send(model_name)
-          model.send(with_any_of_name, self)
+          model = self.send(model_method_name)
+          model.send(with_any_of_method_name, self)
         end
 
         define_singleton_method "#{name}_contained_by" do
-          model = self.send(model_name)
-          model.send(with_name, self)
+          model = self.send(model_method_name)
+          model.send(with_method_name, self)
         end
       end
     end
