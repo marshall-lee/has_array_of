@@ -57,7 +57,7 @@ module HasArrayOf
           write_attribute(ids_name, ids)
         end
 
-        define_singleton_method "including_#{name}" do |arg, *args|
+        define_singleton_method "with_#{name}_containing" do |arg, *args|
           ary = if args.any?
                   [arg, *args]
                 elsif arg.is_a? Array
@@ -70,7 +70,7 @@ module HasArrayOf
           end
         end
 
-        define_singleton_method "including_any_of_#{name}" do |arg, *args|
+        define_singleton_method "with_any_#{singular_name}_from" do |arg, *args|
           ary = if args.any?
                   [arg, *args]
                 elsif arg.is_a? Array
@@ -93,8 +93,9 @@ module HasArrayOf
                      else
                        self.name.underscore.pluralize
                      end
-        including_name = "including_#{array_name}"
-        including_any_of_name = "including_any_of_#{array_name}"
+        singular_array_name = array_name.singularize
+        with_name = "with_#{array_name}_containing"
+        with_any_of_name = "with_any_#{singular_array_name}_from"
         model_name = "_#{name}_model"
 
         define_singleton_method model_name do
@@ -104,17 +105,17 @@ module HasArrayOf
 
         define_method name do
           model = self.class.send(model_name)
-          model.send(including_name, [self])
+          model.send(with_name, [self])
         end
 
         define_singleton_method "all_#{name}" do
           model = self.send(model_name)
-          model.send(including_any_of_name, self)
+          model.send(with_any_of_name, self)
         end
 
         define_singleton_method "#{name}_contained_by" do
           model = self.send(model_name)
-          model.send(including_name, self)
+          model.send(with_name, self)
         end
       end
     end
