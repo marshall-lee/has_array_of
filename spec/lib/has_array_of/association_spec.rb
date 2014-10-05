@@ -178,5 +178,34 @@ RSpec.describe HasArrayOf::Association do
                                                                my_cool)
       end
     end
+
+    describe "all_ scope" do
+      it "should respond to scope method" do
+        expect(Video).to respond_to(:all_playlists)
+      end
+
+      it "should fetch correct objects" do
+        expect(Video.all_playlists).to contain_exactly(adventure_time_season6,
+                                                       my_cool,
+                                                       mlp_season2)
+      end
+    end
+
+    describe "_contained_by scope" do
+      it "should respond to scope method" do
+        expect(Video).to respond_to(:playlists_contained_by)
+      end
+
+      it "should fetch correct objects" do
+        videos = Video.where(id: something_big.id)
+        expect(videos.playlists_contained_by).to contain_exactly(adventure_time_season6,
+                                                                 my_cool)
+        videos = Video.where(id: return_of_harmony.id)
+        expect(videos.playlists_contained_by).to contain_exactly(mlp_season2,
+                                                                 my_cool)
+        videos = Video
+        expect(videos.playlists_contained_by).to contain_exactly(my_cool)
+      end
+    end
   end
 end
