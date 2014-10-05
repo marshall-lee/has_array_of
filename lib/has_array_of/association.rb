@@ -95,19 +95,25 @@ module HasArrayOf
                      end
         including_name = "including_#{array_name}"
         including_any_of_name = "including_any_of_#{array_name}"
+        model_name = "_#{name}_model"
+
+        define_singleton_method model_name do
+          instance_variable_get("@_#{model_name}") or
+            instance_variable_set("@_#{model_name}", class_name.constantize)
+        end
 
         define_method name do
-          model = class_name.constantize
+          model = self.class.send(model_name)
           model.send(including_name, [self])
         end
 
         define_singleton_method "all_#{name}" do
-          model = class_name.constantize
+          model = self.send(model_name)
           model.send(including_any_of_name, self)
         end
 
         define_singleton_method "#{name}_contained_by" do
-          model = class_name.constantize
+          model = self.send(model_name)
           model.send(including_name, self)
         end
       end
