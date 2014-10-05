@@ -56,21 +56,59 @@ module HasArrayOf
                 end
           write_attribute(ids_name, ids)
         end
+
+        define_singleton_method "including_#{name}" do |arg, *args|
+          ary = if args.any?
+                  [arg, *args]
+                elsif arg.is_a? Array
+                  arg
+                end
+          if ary
+            where "#{ids_name} @> ARRAY[#{ary.map(&primary_key_proc).join(',')}]"
+          else
+            where "#{ids_name} @> ARRAY(#{arg.select(primary_key).to_sql})"
+          end
+        end
+
+        define_singleton_method "including_any_of_#{name}" do |arg, *args|
+          ary = if args.any?
+                  [arg, *args]
+                elsif arg.is_a? Array
+                  arg
+                end
+          if ary
+            where "#{ids_name} && ARRAY[#{ary.map(&primary_key_proc).join(',')}]"
+          else
+            where "#{ids_name} && ARRAY(#{arg.select(primary_key).to_sql})"
+          end
+        end
       end
 
       def contained_in_array_from(singular_name, options={})
         singular_name = singular_name.to_s
         name = singular_name.pluralize
         class_name = (options[:class_name] || singular_name.camelize).to_s
-        ids_name = if options[:array_name]
-                     "#{options[:array_name].to_s.singularize}_ids"
-                   else
-                     "#{self.name.underscore}_ids"
-                   end
-        self_primary_key = self.primary_key
+        array_name = if options[:array_name]
+                       options[:array_name].to_s
+                     else
+                       self.name.underscore.pluralize
+                     end
+        including_name = "including_#{array_name}"
+        including_any_of_name = "including_any_of_#{array_name}"
+
         define_method name do
           model = class_name.constantize
-          model.where("#{ids_name} @> ARRAY[#{send(self_primary_key)}]")
+          model.send(including_name, [self])
+        end
+
+        define_singleton_method "all_#{name}" do
+          model = class_name.constantize
+          model.send(including_any_of_name, self)
+        end
+
+        define_singleton_method "#{name}_contained_by" do
+          model = class_name.constantize
+          model.send(including_name, self)
         end
       end
     end
