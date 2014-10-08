@@ -4,7 +4,7 @@ RSpec.describe HasArrayOf::Association do
   describe ActiveRecord::Base do
     subject { described_class }
     it { should respond_to(:has_array_of) }
-    it { should respond_to(:contained_in_array_from) }
+    it { should respond_to(:belongs_to_array_in_many) }
   end
 
   describe "has_array_of scope" do
@@ -23,189 +23,117 @@ RSpec.describe HasArrayOf::Association do
       end
     end
 
-    let!(:another_videos) {
-      [ Video.create(title: "my little pony season 01 episode 01"),
-        Video.create(title: "my little pony season 01 episode 02") ]
+    let!(:return_of_harmony) {
+      Video.create(title: "My Little Pony s02e01 'The Return of Harmony'")
     }
-
-    let!(:playlist_videos) {
-      [ Video.create(title: "crazy show about unicorns episode 1"),
-        Video.create(title: "crazy show about unicorns episode 2") ]
+    let!(:something_big) {
+      Video.create(title: "Adventure Time s06e10 'Something Big'")
     }
-
-    let!(:playlist) {
-      Playlist.create(video_ids: playlist_videos.map(&:id))
+    let!(:escape_from_the_citadel) {
+      Video.create(title: "Adventure Time s06e02 'Escape from the Citadel'")
+    }
+    let!(:adventure_time_videos) { [something_big, escape_from_the_citadel] }
+    let!(:adventure_time_season6) {
+      Playlist.create(video_ids: adventure_time_videos.map(&:id))
+    }
+    let!(:mlp_videos) { [return_of_harmony] }
+    let!(:mlp_season2) {
+      Playlist.create(video_ids: mlp_videos.map(&:id))
+    }
+    let!(:my_cool_videos) {
+      [return_of_harmony, something_big]
+    }
+    let!(:my_cool_list) {
+      Playlist.create(video_ids: my_cool_videos.map(&:id))
     }
 
     describe "associated collection reader" do
       it "should respond to scope method" do
-        expect(playlist).to respond_to(:videos)
+        expect(my_cool_list).to respond_to(:videos)
       end
 
       it "should fetch correct objects" do
-        expect(Video.count).to eq(4)
-        expect(playlist.videos).to contain_exactly(*playlist_videos)
+        expect(Video.count).to eq(3)
+        expect(adventure_time_season6.videos).to contain_exactly(*adventure_time_videos)
+        expect(mlp_season2.videos).to contain_exactly(*mlp_videos)
       end
     end
 
     describe "associated collection assigner" do
       it "should respond to assignment method" do
-        expect(playlist).to respond_to(:videos=)
+        expect(my_cool_list).to respond_to(:videos=)
       end
 
       it "should reflect changes" do
-        playlist.videos = another_videos
-        expect(playlist.videos).to eq(another_videos)
+        mlp_season2.videos = adventure_time_videos
+        expect(mlp_season2.videos).to eq(adventure_time_videos)
       end
 
       it "should modify ids" do
-        playlist.videos = another_videos
-        expected_ids = another_videos.map(&:id)
-        expect(playlist.video_ids).to eq(expected_ids)
+        mlp_season2.videos = adventure_time_videos
+        expected_ids = adventure_time_videos.map(&:id)
+        expect(mlp_season2.video_ids).to eq(expected_ids)
       end
     end
 
     describe "associated collection appender" do
+      let(:expected_videos) { [*my_cool_videos, escape_from_the_citadel] }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
       it "should respond to append method" do
-        expect(playlist.videos).to respond_to(:<<)
+        expect(my_cool_list.videos).to respond_to(:<<)
       end
 
       it "should reflect changes" do
-        video = another_videos[0]
-        videos = playlist.videos
-        videos << video
-        expected_videos = [*playlist_videos, video]
+        videos = my_cool_list.videos
+        videos << escape_from_the_citadel
         expect(videos).to eq(expected_videos)
       end
 
       it "should reflect changes when loaded" do
-        video = another_videos[0]
-        videos = playlist.videos.load
-        videos << video
-        expected_videos = [*playlist_videos, video]
+        videos = my_cool_list.videos.load
+        videos << escape_from_the_citadel
         expect(videos).to eq(expected_videos)
       end
 
       it "should modify to_sql" do
-        video = another_videos[0]
-        videos = playlist.videos
-        expect(videos.to_sql).to include("(#{playlist_videos.map(&:id).join(', ')})")
-        videos << video
-        expected_videos = [*playlist_videos, video]
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+        videos << escape_from_the_citadel
         expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
       end
 
       it "should modify ids" do
-        video = another_videos[0]
-        playlist.videos << video
-        expected_ids = [*playlist_videos, video].map(&:id)
-        expect(playlist.video_ids).to eq(expected_ids)
+        my_cool_list.videos << escape_from_the_citadel
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
       end
 
       it "should reset loaded state" do
-        video = another_videos[0]
-        videos = playlist.videos.load
+        videos = my_cool_list.videos.load
         expect(videos).to be_loaded
-        videos << video
+        videos << escape_from_the_citadel
         expect(videos).not_to be_loaded
       end
 
       describe "chaining with other queries" do
         it "should work well with queries referencing fields other than primary_key" do
-          video = another_videos[0]
-          videos = playlist.videos.where("title like 'crazy%'")
-          videos << video
-          expect(videos).to eq(playlist_videos)
+          videos = my_cool_list.videos.where("title like 'Adventure%'")
+          expect {
+            videos << escape_from_the_citadel
+          }.to change(videos, :count).by(1)
         end
 
         it "should work well with queries referencing primary_key" do
-          video = another_videos[0]
-          videos = playlist.videos.where(id: another_videos.map(&:id))
-          videos << video
-          expect(videos).to eq([video])
+          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
+          expect {
+            videos << return_of_harmony
+          }.to change(videos, :count).by(1)
         end
       end
     end
   end
 
-  describe "belongs_to_array_in association" do
-    with_model :Video do
-      table do |t|
-        t.text :title
-      end
-
-      model do
-        contained_in_array_from :playlist
-      end
-    end
-
-    with_model :Playlist do
-      table do |t|
-        t.integer :video_ids, array: true, default: []
-      end
-
-      model do
-        has_array_of :videos
-      end
-    end
-
-    let(:return_of_harmony) {
-      Video.create(title: "My Little Pony s02e01 'The Return of Harmony'")
-    }
-    let(:something_big) {
-      Video.create(title: "Adventure Time s06e10 'Something Big'")
-    }
-    let!(:adventure_time_season6) {
-      Playlist.create(videos: [something_big])
-    }
-    let!(:my_cool) {
-      Playlist.create(videos: [return_of_harmony, something_big])
-    }
-    let!(:mlp_season2) {
-      Playlist.create(videos: [return_of_harmony])
-    }
-
-    describe "associated collection reader" do
-      it "should respond to association method" do
-        expect(return_of_harmony).to respond_to(:playlists)
-      end
-
-      it "should fetch correct objects" do
-        expect(Video.count).to eq(2)
-        expect(something_big.playlists).to contain_exactly(adventure_time_season6,
-                                                           my_cool)
-        expect(return_of_harmony.playlists).to contain_exactly(mlp_season2,
-                                                               my_cool)
-      end
-    end
-
-    describe "all_ scope" do
-      it "should respond to scope method" do
-        expect(Video).to respond_to(:all_playlists)
-      end
-
-      it "should fetch correct objects" do
-        expect(Video.all_playlists).to contain_exactly(adventure_time_season6,
-                                                       my_cool,
-                                                       mlp_season2)
-      end
-    end
-
-    describe "_contained_by scope" do
-      it "should respond to scope method" do
-        expect(Video).to respond_to(:playlists_contained_by)
-      end
-
-      it "should fetch correct objects" do
-        videos = Video.where(id: something_big.id)
-        expect(videos.playlists_contained_by).to contain_exactly(adventure_time_season6,
-                                                                 my_cool)
-        videos = Video.where(id: return_of_harmony.id)
-        expect(videos.playlists_contained_by).to contain_exactly(mlp_season2,
-                                                                 my_cool)
-        videos = Video
-        expect(videos.playlists_contained_by).to contain_exactly(my_cool)
-      end
-    end
+  describe "belongs_to_array_in_many scope" do
+    pending "TODO"
   end
 end
