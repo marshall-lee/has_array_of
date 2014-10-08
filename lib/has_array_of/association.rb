@@ -24,20 +24,29 @@ module HasArrayOf
         model = class_name.constantize
         primary_key = model.primary_key.to_sym
         primary_key_proc = primary_key.to_proc
+        mutate_method_name = "_mutate_#{ids_method_name}".to_sym
 
         define_method name do
           ids = send(ids_method_name)
           owner = self
           query = model.arel_table[primary_key].in(ids)
           model.where(query).extending do
-            define_method :<< do |*objects|
+            define_method mutate_method_name do |&block|
               reset
               where_values.reject! { |v| v == query }
-              ids.concat(objects.map(&primary_key_proc))
+              ret = block.call
               owner.send(:write_attribute, ids_method_name, ids)
               query = model.arel_table[primary_key].in(ids)
               where! query
+              ret
             end
+            define_method :<< do |object|
+              send(mutate_method_name) do
+                ids << object.send(primary_key)
+                self
+              end
+            end
+
             define_method :to_a do
               hash = super().reduce({}) do |memo, object|
                 memo[object.send(primary_key)] = object
