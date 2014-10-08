@@ -165,15 +165,71 @@ RSpec.describe HasArrayOf::Association do
           expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
         end
 
-        it "should affect ids" do
-          my_cool_list.videos[0] = escape_from_the_citadel
-          expect(my_cool_list.video_ids).to eq(expected_video_ids)
-        end
-
         it "should reset loaded state" do
           videos = my_cool_list.videos.load
           expect(videos).to be_loaded
           videos[0] = escape_from_the_citadel
+          expect(videos).not_to be_loaded
+        end
+      end
+
+      describe "when access with start and length" do
+        let!(:harlem_shake) {
+          Video.create(title: "The Harlem Shake")
+        }
+        let!(:gangnam_style) {
+          Video.create(title: "Gangnam Style")
+        }
+        let!(:spider_dog) {
+          Video.create(title: "Mutant Giant Spider Dog")
+        }
+        let!(:chandelier) {
+          Video.create(title: "Sia - Chandelier (Official Video)")
+        }
+        let!(:another_memes) {
+          [harlem_shake, gangnam_style, spider_dog, chandelier]
+        }
+        let!(:another_meme_ids) {
+          another_memes.map(&:id)
+        }
+        let!(:another_playlist) {
+          Playlist.create(video_ids: another_meme_ids)
+        }
+        let(:expected_videos) {
+          [harlem_shake, return_of_harmony, something_big, chandelier]
+        }
+        let(:expected_video_ids) {
+          expected_videos.map(&:id)
+        }
+
+        it "should reflect changes" do
+          videos = another_playlist.videos
+          videos[1,2] = [return_of_harmony, something_big]
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should reflect changes when loaded" do
+          videos = another_playlist.videos.load
+          videos[1,2] = [return_of_harmony, something_big]
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should affect ids" do
+          another_playlist.videos[1,2] = [return_of_harmony, something_big]
+          expect(another_playlist.video_ids).to eq(expected_video_ids)
+        end
+
+        it "should modify to_sql" do
+          videos = another_playlist.videos.load
+          expect(videos.to_sql).to include("(#{another_meme_ids.join(', ')})")
+          videos[1,2] = [return_of_harmony, something_big]
+          expect(videos.to_sql).to include("(#{expected_video_ids.join(', ')})")
+        end
+
+        it "should reset loaded state" do
+          videos = another_playlist.videos.load
+          expect(videos).to be_loaded
+          videos[1,2] = [return_of_harmony, something_big]
           expect(videos).not_to be_loaded
         end
       end

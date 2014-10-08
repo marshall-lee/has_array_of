@@ -46,9 +46,13 @@ module HasArrayOf
                 self
               end
             end
-            define_method :[]= do |index, val|
+            define_method :[]= do |*index, val|
               send(mutate_method_name) do
-                ids[*index] = val.send(primary_key)
+                if val.is_a? Array
+                  ids[*index] = val.map(&primary_key_proc)
+                else
+                  ids[*index] = val.send(primary_key)
+                end
                 val
               end
             end
