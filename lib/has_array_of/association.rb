@@ -97,7 +97,7 @@ module HasArrayOf
         end
       end
 
-      def contained_in_array_from(singular_name, options={})
+      def belongs_to_array_in_many(singular_name, options={})
         singular_name = singular_name.to_s
         name = singular_name.pluralize
         class_name = (options[:class_name] || singular_name.camelize).to_s
@@ -106,9 +106,7 @@ module HasArrayOf
                      else
                        self.name.underscore.pluralize
                      end
-        singular_array_name = array_name.singularize
         with_method_name = "with_#{array_name}_containing"
-        with_any_of_method_name = "with_any_#{singular_array_name}_from"
         model_method_name = "_#{name}_model"
 
         define_singleton_method model_method_name do
@@ -119,16 +117,6 @@ module HasArrayOf
         define_method name do
           model = self.class.send(model_method_name)
           model.send(with_method_name, [self])
-        end
-
-        define_singleton_method "all_#{name}" do
-          model = self.send(model_method_name)
-          model.send(with_any_of_method_name, self)
-        end
-
-        define_singleton_method "#{name}_contained_by" do
-          model = self.send(model_method_name)
-          model.send(with_method_name, self)
         end
       end
     end
