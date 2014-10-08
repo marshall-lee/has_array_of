@@ -22,8 +22,8 @@ module HasArrayOf
         class_name = (options[:class_name] || singular_name.camelize).to_s
         ids_method_name = "#{singular_name}_ids".to_sym
         model = class_name.constantize
-        primary_key = model.primary_key
-        primary_key_proc = primary_key.to_sym.to_proc
+        primary_key = model.primary_key.to_sym
+        primary_key_proc = primary_key.to_proc
 
         define_method name do
           ids = send(ids_method_name)
