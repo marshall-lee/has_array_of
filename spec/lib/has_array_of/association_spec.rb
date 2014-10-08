@@ -69,7 +69,7 @@ RSpec.describe HasArrayOf::Association do
         expect(mlp_season2.videos).to eq(adventure_time_videos)
       end
 
-      it "should modify ids" do
+      it "should affect ids" do
         mlp_season2.videos = adventure_time_videos
         expected_ids = adventure_time_videos.map(&:id)
         expect(mlp_season2.video_ids).to eq(expected_ids)
@@ -103,7 +103,7 @@ RSpec.describe HasArrayOf::Association do
         expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
       end
 
-      it "should modify ids" do
+      it "should affect ids" do
         my_cool_list.videos << escape_from_the_citadel
         expect(my_cool_list.video_ids).to eq(expected_video_ids)
       end
@@ -128,6 +128,53 @@ RSpec.describe HasArrayOf::Association do
           expect {
             videos << return_of_harmony
           }.to change(videos, :count).by(1)
+        end
+      end
+    end
+
+    describe "associated collection array element assigner" do
+      it "should respond to []=" do
+        expect(my_cool_list.videos).to respond_to(:[]=)
+      end
+
+      describe "when access by integer index" do
+        let(:expected_videos) { [escape_from_the_citadel, something_big] }
+        let(:expected_video_ids) { expected_videos.map(&:id) }
+
+        it "should reflect changes" do
+          videos = my_cool_list.videos
+          videos[0] = escape_from_the_citadel
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should reflect changes when loaded" do
+          videos = my_cool_list.videos.load
+          videos[0] = escape_from_the_citadel
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should affect ids" do
+          my_cool_list.videos[0] = escape_from_the_citadel
+          expect(my_cool_list.video_ids).to eq(expected_video_ids)
+        end
+
+        it "should modify to_sql" do
+          videos = my_cool_list.videos
+          expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+          videos[0] = escape_from_the_citadel
+          expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+        end
+
+        it "should affect ids" do
+          my_cool_list.videos[0] = escape_from_the_citadel
+          expect(my_cool_list.video_ids).to eq(expected_video_ids)
+        end
+
+        it "should reset loaded state" do
+          videos = my_cool_list.videos.load
+          expect(videos).to be_loaded
+          videos[0] = escape_from_the_citadel
+          expect(videos).not_to be_loaded
         end
       end
     end

@@ -46,6 +46,12 @@ module HasArrayOf
                 self
               end
             end
+            define_method :[]= do |index, val|
+              send(mutate_method_name) do
+                ids[*index] = val.send(primary_key)
+                val
+              end
+            end
 
             define_method :to_a do
               hash = super().reduce({}) do |memo, object|
