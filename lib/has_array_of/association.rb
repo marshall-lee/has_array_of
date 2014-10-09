@@ -42,7 +42,7 @@ module HasArrayOf
             end
             define_method :<< do |object|
               send(mutate_method_name) do
-                ids << object.send(primary_key)
+                ids << object.try(primary_key)
                 self
               end
             end
@@ -51,7 +51,7 @@ module HasArrayOf
                 if val.is_a? Array
                   ids[*index] = val.map(&try_primary_key)
                 else
-                  ids[*index] = val.send(primary_key)
+                  ids[*index] = val.try(primary_key)
                 end
                 val
               end

@@ -43,8 +43,9 @@ RSpec.describe HasArrayOf::Association do
     let!(:my_cool_videos) {
       [return_of_harmony, something_big]
     }
+    let!(:my_cool_video_ids) { my_cool_videos.map(&:id) }
     let!(:my_cool_list) {
-      Playlist.create(video_ids: my_cool_videos.map(&:id))
+      Playlist.create(video_ids: my_cool_video_ids.clone)
     }
 
     describe "associated collection reader" do
@@ -122,6 +123,12 @@ RSpec.describe HasArrayOf::Association do
         expect(videos).not_to be_loaded
       end
 
+      it "should correctly append nil values" do
+        videos = my_cool_list.videos
+        videos << nil
+        expect(my_cool_list.video_ids).to eq([*my_cool_video_ids, nil])
+      end
+
       describe "chaining with other queries" do
         it "should work well with queries referencing fields other than primary_key" do
           videos = my_cool_list.videos.where("title like 'Adventure%'")
@@ -177,6 +184,12 @@ RSpec.describe HasArrayOf::Association do
           expect(videos).to be_loaded
           videos[0] = escape_from_the_citadel
           expect(videos).not_to be_loaded
+        end
+
+        it "should correctly deal with nil values" do
+          videos = my_cool_list.videos
+          videos[0] = nil
+          expect(my_cool_list.video_ids[0]).to be_nil
         end
       end
 
@@ -238,6 +251,12 @@ RSpec.describe HasArrayOf::Association do
           expect(videos).to be_loaded
           videos[1,2] = [return_of_harmony, something_big]
           expect(videos).not_to be_loaded
+        end
+
+        it "should correctly deal with nil values" do
+          videos = another_playlist.videos
+          videos[1,2] = [nil, nil, nil]
+          expect(another_playlist.video_ids).to eq([harlem_shake.id, nil, nil, nil, chandelier.id])
         end
       end
     end
