@@ -57,6 +57,13 @@ RSpec.describe HasArrayOf::Association do
         expect(adventure_time_season6.videos).to contain_exactly(*adventure_time_videos)
         expect(mlp_season2.videos).to contain_exactly(*mlp_videos)
       end
+
+      it "should correctly deal with nil" do
+        playlist = Playlist.create video_ids: [nil, something_big.id, nil]
+        expect(playlist.videos).to eq([nil, something_big, nil])
+        playlist = Playlist.create video_ids: [nil, nil, nil]
+        expect(playlist.videos).to eq([nil, nil, nil])
+      end
     end
 
     describe "associated collection assigner" do

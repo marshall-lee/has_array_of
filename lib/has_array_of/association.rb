@@ -23,20 +23,20 @@ module HasArrayOf
         ids_method_name = "#{singular_name}_ids".to_sym
         model = class_name.constantize
         primary_key = model.primary_key.to_sym
-        primary_key_proc = primary_key.to_proc
+        try_primary_key = proc { |obj| obj.try(primary_key) }
         mutate_method_name = "_mutate_#{ids_method_name}".to_sym
 
         define_method name do
           ids = send(ids_method_name)
           owner = self
-          query = model.arel_table[primary_key].in(ids)
+          query = model.arel_table[primary_key].in(ids.compact)
           model.where(query).extending do
             define_method mutate_method_name do |&block|
               reset
               where_values.reject! { |v| v == query }
               ret = block.call
               owner.send(:write_attribute, ids_method_name, ids)
-              query = model.arel_table[primary_key].in(ids)
+              query = model.arel_table[primary_key].in(ids.compact)
               where! query
               ret
             end
@@ -49,7 +49,7 @@ module HasArrayOf
             define_method :[]= do |*index, val|
               send(mutate_method_name) do
                 if val.is_a? Array
-                  ids[*index] = val.map(&primary_key_proc)
+                  ids[*index] = val.map(&try_primary_key)
                 else
                   ids[*index] = val.send(primary_key)
                 end
@@ -62,16 +62,16 @@ module HasArrayOf
                 memo[object.send(primary_key)] = object
                 memo
               end
-              ids.map { |id| hash[id] }.compact
+              ids.map { |id| hash[id] }
             end
           end
         end
 
         define_method "#{name}=" do |objects|
           ids = if objects.respond_to? :pluck
-                  objects.pluck(model.primary_key)
+                  objects.pluck(primary_key)
                 else
-                  objects.map { |obj| obj.send model.primary_key }
+                  objects.map(&try_primary_key)
                 end
           write_attribute(ids_method_name, ids)
         end
@@ -83,7 +83,7 @@ module HasArrayOf
                   arg
                 end
           if ary
-            where "#{ids_method_name} @> ARRAY[#{ary.map(&primary_key_proc).join(',')}]"
+            where "#{ids_method_name} @> ARRAY[#{ary.map(&try_primary_key).join(',')}]"
           else
             where "#{ids_method_name} @> ARRAY(#{arg.select(primary_key).to_sql})"
           end
@@ -96,7 +96,7 @@ module HasArrayOf
                   arg
                 end
           if ary
-            where "#{ids_method_name} <@ ARRAY[#{ary.map(&primary_key_proc).join(',')}]"
+            where "#{ids_method_name} <@ ARRAY[#{ary.map(&try_primary_key).join(',')}]"
           else
             where "#{ids_method_name} <@ ARRAY(#{arg.select(primary_key).to_sql})"
           end
@@ -109,7 +109,7 @@ module HasArrayOf
                   arg
                 end
           if ary
-            where "#{ids_method_name} && ARRAY[#{ary.map(&primary_key_proc).join(',')}]"
+            where "#{ids_method_name} && ARRAY[#{ary.map(&try_primary_key).join(',')}]"
           else
             where "#{ids_method_name} && ARRAY(#{arg.select(primary_key).to_sql})"
           end
