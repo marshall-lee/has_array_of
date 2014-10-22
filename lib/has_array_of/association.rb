@@ -40,12 +40,21 @@ module HasArrayOf
               where! query
               ret
             end
+
+            define_method :push do |*objects|
+              send(mutate_method_name) do
+                ids.push(*objects.map(&try_primary_key))
+                self
+              end
+            end
+
             define_method :<< do |object|
               send(mutate_method_name) do
                 ids << object.try(primary_key)
                 self
               end
             end
+
             define_method :[]= do |*index, val|
               send(mutate_method_name) do
                 if val.is_a? Array
@@ -56,6 +65,128 @@ module HasArrayOf
                 val
               end
             end
+
+            define_method :shift do
+              # TODO: optimize
+              send(mutate_method_name) do
+                model.find(ids.shift)
+              end
+            end
+
+            define_method :pop do
+              # TODO: optimize
+              send(mutate_method_name) do
+                model.find(ids.pop)
+              end
+            end
+
+            define_method :map! do |&block|
+              if block
+                data = to_a
+                send(mutate_method_name) do
+                  data.each_with_index do |object, index|
+                    ids[index] = block.call(object).try(primary_key)
+                  end
+                end
+              else
+                to_enum :map!
+              end
+            end
+
+            define_method :collect! do |&block|
+              if block
+                map!(&block)
+              else
+                to_enum(:collect!)
+              end
+            end
+
+            define_method :delete do |object|
+              # TODO: optimize
+              send(mutate_method_name) do
+                id = ids.delete(object.try(primary_key))
+                if id
+                  model.find(id)
+                end
+              end
+            end
+
+            define_method :delete_at do |index|
+              # TODO: optimize
+              send(mutate_method_name) do
+                id = ids.delete_at(index)
+                if id
+                  model.find(id)
+                end
+              end
+            end
+
+            define_method :delete_if do |&block|
+              if block
+                data = to_a
+                hash = data.reduce({}) do |memo, object|
+                  memo[object.send(primary_key)] = object
+                  memo
+                end
+                send(mutate_method_name) do
+                  ids.delete_if { |id| block.call(hash[id]) }
+                  self
+                end
+              else
+                to_enum(:delete_if)
+              end
+            end
+
+            define_method :reject! do |&block|
+              if block
+                data = to_a
+                hash = data.reduce({}) do |memo, object|
+                  memo[object.send(primary_key)] = object
+                  memo
+                end
+                send(mutate_method_name) do
+                  if ids.reject! { |id| block.call(hash[id]) }
+                    self
+                  end
+                end
+              else
+                to_enum(:reject!)
+              end
+            end
+
+            define_method :keep_if do |&block|
+              if block
+                data = to_a
+                hash = data.reduce({}) do |memo, object|
+                  memo[object.send(primary_key)] = object
+                  memo
+                end
+                send(mutate_method_name) do
+                  ids.keep_if { |id| block.call(hash[id]) }
+                  self
+                end
+              else
+                to_enum(:keep_if)
+              end
+            end
+
+            define_method :select! do |&block|
+              if block
+                data = to_a
+                hash = data.reduce({}) do |memo, object|
+                  memo[object.send(primary_key)] = object
+                  memo
+                end
+                send(mutate_method_name) do
+                  if ids.select! { |id| block.call(hash[id]) }
+                    self
+                  end
+                end
+              else
+                to_enum(:select!)
+              end
+            end
+
 
             define_method :to_a do
               hash = super().reduce({}) do |memo, object|
