@@ -24,13 +24,16 @@ RSpec.describe HasArrayOf::Association do
     end
 
     let!(:return_of_harmony) {
-      Video.create(title: "My Little Pony s02e01 'The Return of Harmony'")
+      Video.create(title: "My Little Pony s02e01 'The Return of Harmony'") # id=1
     }
     let!(:something_big) {
-      Video.create(title: "Adventure Time s06e10 'Something Big'")
+      Video.create(title: "Adventure Time s06e10 'Something Big'") # id=2
     }
     let!(:escape_from_the_citadel) {
       Video.create(title: "Adventure Time s06e02 'Escape from the Citadel'")
+    }
+    let!(:food_chain) {
+      Video.create(title: "Adventure Time s06e07 'Food Chain'")
     }
     let!(:adventure_time_videos) { [something_big, escape_from_the_citadel] }
     let!(:adventure_time_season6) {
@@ -54,7 +57,7 @@ RSpec.describe HasArrayOf::Association do
       end
 
       it "should fetch correct objects" do
-        expect(Video.count).to eq(3)
+        expect(Video.count).to eq(4)
         expect(adventure_time_season6.videos).to contain_exactly(*adventure_time_videos)
         expect(mlp_season2.videos).to contain_exactly(*mlp_videos)
       end
@@ -710,6 +713,700 @@ RSpec.describe HasArrayOf::Association do
       it "should return enumerator when calling without block" do
         expect(my_cool_list.videos.select!).to be_a(Enumerator)
         expect(my_cool_list.videos.select!.inspect).to include("select!")
+      end
+    end
+
+    describe "compact! method" do
+      before {
+        my_cool_list.videos << nil
+        my_cool_list.save
+      }
+      let(:expected_videos) { [return_of_harmony, something_big] }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to compact! method" do
+        expect(my_cool_list.videos).to respond_to(:compact!)
+      end
+
+      it "should contain nil" do
+        expect(my_cool_list.videos).to include(nil)
+        expect(my_cool_list.videos.length).to eq(3)
+      end
+
+      it "should reflect changes" do
+        videos = my_cool_list.videos
+        videos.compact!
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        videos = my_cool_list.videos.load
+        videos.compact!
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should modify to_sql" do
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+        videos.compact!
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
+      it "should affect ids" do
+        my_cool_list.videos.compact!
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
+      end
+
+      it "should return self" do
+        videos = my_cool_list.videos
+        expect(videos.compact!).to eq(videos)
+      end
+
+      it "should reset loaded state" do
+        videos = my_cool_list.videos.load
+        expect(videos).to be_loaded
+        videos.compact!
+        expect(videos).not_to be_loaded
+      end
+
+      pending "chaining with other queries" do
+        # TODO: decide what to do when chaining
+        it "should work well with queries referencing fields other than primary_key" do
+          videos = my_cool_list.videos.where("title like 'Adventure%'")
+          expect {
+            videos.compact!
+          }.to change(videos, :count).by(-1)
+        end
+
+        it "should work well with queries referencing primary_key" do
+          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
+          expect {
+            videos.compact!
+          }.to change(videos, :count).by(-1)
+        end
+      end
+    end
+
+    describe "concat method" do
+      let(:other_videos) { [escape_from_the_citadel, food_chain] }
+      let(:expected_videos) { [return_of_harmony, something_big] + other_videos }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to compact! method" do
+        expect(my_cool_list.videos).to respond_to(:compact!)
+      end
+
+      it "should reflect changes" do
+        videos = my_cool_list.videos
+        videos.concat other_videos
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        videos = my_cool_list.videos.load
+        videos.concat other_videos
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should modify to_sql" do
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+        videos.concat other_videos
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
+      it "should affect ids" do
+        my_cool_list.videos.concat other_videos
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
+      end
+
+      it "should return self" do
+        videos = my_cool_list.videos
+        expect(videos.concat other_videos).to eq(videos)
+      end
+
+      it "should reset loaded state" do
+        videos = my_cool_list.videos.load
+        expect(videos).to be_loaded
+        videos.concat other_videos
+        expect(videos).not_to be_loaded
+      end
+
+      pending "chaining with other queries" do
+        # TODO: decide what to do when chaining
+        it "should work well with queries referencing fields other than primary_key" do
+          videos = my_cool_list.videos.where("title like 'Adventure%'")
+          expect {
+            videos.concat other_videos
+          }.to change(videos, :count).by(2)
+        end
+
+        it "should work well with queries referencing primary_key" do
+          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
+          expect {
+            videos.concat other_videos
+          }.to change(videos, :count).by(2)
+        end
+      end
+    end
+
+    describe "fill method" do
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to fill method" do
+        expect(my_cool_list.videos).to respond_to(:fill)
+      end
+
+      describe "when calling without block" do
+        let(:expected_videos) { [food_chain, food_chain] }
+
+        it "should reflect changes" do
+          videos = my_cool_list.videos
+          videos.fill food_chain
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should reflect changes when loaded" do
+          videos = my_cool_list.videos.load
+          videos.fill food_chain
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should modify to_sql" do
+          videos = my_cool_list.videos
+          expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+          videos.fill food_chain
+          expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+        end
+
+        it "should affect ids" do
+          my_cool_list.videos.fill food_chain
+          expect(my_cool_list.video_ids).to eq(expected_video_ids)
+        end
+
+        it "should return self" do
+          videos = my_cool_list.videos
+          expect(videos.fill food_chain).to eq(videos)
+        end
+
+        it "should reset loaded state" do
+          videos = my_cool_list.videos.load
+          expect(videos).to be_loaded
+          videos.fill food_chain
+          expect(videos).not_to be_loaded
+        end
+
+        describe "and with index and length or with range" do
+          before(:each) do
+            my_cool_list.videos.concat [escape_from_the_citadel, food_chain]
+          end
+
+          it "should reflect changes" do
+            videos = my_cool_list.videos
+            videos.fill food_chain, 2, 2
+            expect(videos).to eq([return_of_harmony, something_big, food_chain, food_chain])
+            videos.fill escape_from_the_citadel, 0..1
+            expect(videos).to eq([escape_from_the_citadel, escape_from_the_citadel, food_chain, food_chain])
+            videos.fill something_big, 1
+            expect(videos).to eq([escape_from_the_citadel, something_big, something_big, something_big])
+          end
+
+          it "should affect ids" do
+            videos = my_cool_list.videos
+            videos.fill food_chain, 2, 2
+            expect(videos.map(&:id)).to eq([return_of_harmony, something_big, food_chain, food_chain].map(&:id))
+            videos.fill escape_from_the_citadel, 0..1
+            expect(videos.map(&:id)).to eq([escape_from_the_citadel, escape_from_the_citadel, food_chain, food_chain].map(&:id))
+            videos.fill something_big, 1
+            expect(videos.map(&:id)).to eq([escape_from_the_citadel, something_big, something_big, something_big].map(&:id))
+          end
+        end
+      end
+
+      describe "when calling with block" do
+        let(:other_videos) { [escape_from_the_citadel, food_chain] }
+        let(:expected_videos) { other_videos }
+
+        it "should reflect changes" do
+          videos = my_cool_list.videos
+          videos.fill { |i| other_videos[i] }
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should reflect changes when loaded" do
+          videos = my_cool_list.videos.load
+          videos.fill { |i| other_videos[i] }
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should modify to_sql" do
+          videos = my_cool_list.videos
+          expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+          videos.fill { |i| other_videos[i] }
+          expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+        end
+
+        it "should affect ids" do
+          my_cool_list.videos.fill { |i| other_videos[i] }
+          expect(my_cool_list.video_ids).to eq(expected_video_ids)
+        end
+
+        it "should return self" do
+          videos = my_cool_list.videos
+          expect(videos.fill { |i| other_videos[i] }).to eq(videos)
+        end
+
+        it "should reset loaded state" do
+          videos = my_cool_list.videos.load
+          expect(videos).to be_loaded
+          videos.fill { |i| other_videos[i] }
+          expect(videos).not_to be_loaded
+        end
+
+        describe "and with index and length or with range" do
+          it "should reflect changes" do
+            videos = my_cool_list.videos
+            videos.fill(2, 2) { |i| other_videos[i-2] }
+            expect(videos).to eq([return_of_harmony, something_big, escape_from_the_citadel, food_chain])
+            videos.fill(0..1) { |i| other_videos[i] }
+            expect(videos).to eq([escape_from_the_citadel, food_chain, escape_from_the_citadel, food_chain])
+          end
+
+          it "should affect ids" do
+            videos = my_cool_list.videos
+            videos.fill(2, 2) { |i| other_videos[i-2] }
+            expect(videos.map(&:id)).to eq([return_of_harmony, something_big, escape_from_the_citadel, food_chain].map(&:id))
+            videos.fill(0..1) { |i| other_videos[i] }
+            expect(videos.map(&:id)).to eq([escape_from_the_citadel, food_chain, escape_from_the_citadel, food_chain].map(&:id))
+          end
+        end
+      end
+    end
+
+    describe "insert method" do
+      let(:other_videos) { [escape_from_the_citadel, food_chain] }
+      let(:expected_videos) { [return_of_harmony, escape_from_the_citadel, food_chain, something_big] }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to insert method" do
+        expect(my_cool_list.videos).to respond_to(:insert)
+      end
+
+      it "should reflect changes" do
+        videos = my_cool_list.videos
+        videos.insert 1, *other_videos
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        videos = my_cool_list.videos.load
+        videos.insert 1, *other_videos
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should modify to_sql" do
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+        videos.insert 1, *other_videos
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
+      it "should affect ids" do
+        my_cool_list.videos.insert 1, *other_videos
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
+      end
+
+      it "should return self" do
+        videos = my_cool_list.videos
+        expect(videos.insert 1, *other_videos).to eq(videos)
+      end
+
+      it "should reset loaded state" do
+        videos = my_cool_list.videos.load
+        expect(videos).to be_loaded
+        videos.insert 1, *other_videos
+        expect(videos).not_to be_loaded
+      end
+    end
+
+    describe "push method" do
+      let(:other_videos) { [escape_from_the_citadel, food_chain] }
+      let(:expected_videos) { my_cool_videos + other_videos }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to push method" do
+        expect(my_cool_list.videos).to respond_to(:push)
+      end
+
+      it "should reflect changes" do
+        videos = my_cool_list.videos
+        videos.push(*other_videos)
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        videos = my_cool_list.videos.load
+        videos.push(*other_videos)
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should modify to_sql" do
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+        videos.push(*other_videos)
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
+      it "should affect ids" do
+        my_cool_list.videos.push(*other_videos)
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
+      end
+
+      it "should return self" do
+        videos = my_cool_list.videos
+        expect(videos.push(*other_videos)).to eq(videos)
+      end
+
+      it "should reset loaded state" do
+        videos = my_cool_list.videos.load
+        expect(videos).to be_loaded
+        videos.push(*other_videos)
+        expect(videos).not_to be_loaded
+      end
+    end
+
+    describe "replace method" do
+      let(:other_videos) { [escape_from_the_citadel, food_chain] }
+      let(:expected_videos) { other_videos }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to replace method" do
+        expect(my_cool_list.videos).to respond_to(:replace)
+      end
+
+      it "should reflect changes" do
+        videos = my_cool_list.videos
+        videos.replace other_videos
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        videos = my_cool_list.videos.load
+        videos.replace other_videos
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should modify to_sql" do
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+        videos.replace other_videos
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
+      it "should affect ids" do
+        my_cool_list.videos.replace other_videos
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
+      end
+
+      it "should return self" do
+        videos = my_cool_list.videos
+        expect(videos.replace other_videos).to eq(videos)
+      end
+
+      it "should reset loaded state" do
+        videos = my_cool_list.videos.load
+        expect(videos).to be_loaded
+        videos.replace other_videos
+        expect(videos).not_to be_loaded
+      end
+    end
+
+    describe "reverse! method" do
+      let(:expected_videos) { [something_big, return_of_harmony] }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to reverse! method" do
+        expect(my_cool_list.videos).to respond_to(:reverse!)
+      end
+
+      it "should reflect changes" do
+        videos = my_cool_list.videos
+        videos.reverse!
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        videos = my_cool_list.videos.load
+        videos.reverse!
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should modify to_sql" do
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+        videos.reverse!
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
+      it "should affect ids" do
+        my_cool_list.videos.reverse!
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
+      end
+
+      it "should return self" do
+        videos = my_cool_list.videos
+        expect(videos.reverse!).to eq(videos)
+      end
+
+      it "should reset loaded state" do
+        videos = my_cool_list.videos.load
+        expect(videos).to be_loaded
+        videos.reverse!
+        expect(videos).not_to be_loaded
+      end
+    end
+
+    describe "rotate! method" do
+      before do
+        my_cool_list.videos << food_chain
+        my_cool_list.save
+      end
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to rotate! method" do
+        expect(my_cool_list.videos).to respond_to(:rotate!)
+      end
+
+      describe "with count=1" do
+        let(:expected_videos) { [something_big, food_chain, return_of_harmony] }
+
+        it "should respond to rotate! method" do
+          expect(my_cool_list.videos).to respond_to(:rotate!)
+        end
+
+        it "should reflect changes" do
+          videos = my_cool_list.videos
+          videos.rotate!
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should reflect changes when loaded" do
+          videos = my_cool_list.videos.load
+          videos.rotate!
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should modify to_sql" do
+          videos = my_cool_list.videos
+          expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+          videos.rotate!
+          expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+        end
+
+        it "should affect ids" do
+          my_cool_list.videos.rotate!
+          expect(my_cool_list.video_ids).to eq(expected_video_ids)
+        end
+
+        it "should return self" do
+          videos = my_cool_list.videos
+          expect(videos.rotate!).to eq(videos)
+        end
+
+        it "should reset loaded state" do
+          videos = my_cool_list.videos.load
+          expect(videos).to be_loaded
+          videos.rotate!
+          expect(videos).not_to be_loaded
+        end
+      end
+
+      describe "with count=2" do
+        let(:expected_videos) { [food_chain, return_of_harmony, something_big] }
+
+        it "should reflect changes" do
+          videos = my_cool_list.videos
+          videos.rotate! 2
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should reflect changes when loaded" do
+          videos = my_cool_list.videos.load
+          videos.rotate! 2
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should modify to_sql" do
+          videos = my_cool_list.videos
+          expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+          videos.rotate! 2
+          expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+        end
+
+        it "should affect ids" do
+          my_cool_list.videos.rotate! 2
+          expect(my_cool_list.video_ids).to eq(expected_video_ids)
+        end
+
+        it "should return self" do
+          videos = my_cool_list.videos
+          expect(videos.rotate! 2).to eq(videos)
+        end
+
+        it "should reset loaded state" do
+          videos = my_cool_list.videos.load
+          expect(videos).to be_loaded
+          videos.rotate! 2
+          expect(videos).not_to be_loaded
+        end
+      end
+    end
+
+    describe "shuffle! method" do
+      before do
+        my_cool_list.videos << food_chain
+        my_cool_list.save
+      end
+
+      it "should respond to shuffle! method" do
+        expect(my_cool_list.videos).to respond_to(:shuffle!)
+      end
+
+      it "should reflect changes" do
+        is_changed = false
+        10.times do
+          old_videos = my_cool_list.videos.to_a
+          my_cool_list.videos.shuffle!
+          expect(my_cool_list.videos).to contain_exactly(something_big, return_of_harmony, food_chain)
+          is_changed ||= old_videos != my_cool_list.videos.to_a
+        end
+        expect(is_changed).to eq(true)
+      end
+
+      it "should affect ids" do
+        10.times do
+          old_videos = my_cool_list.videos.to_a
+          my_cool_list.videos.shuffle!
+          expect(my_cool_list.videos.map(&:id)).to contain_exactly(*[something_big, return_of_harmony, food_chain].map(&:id))
+          is_changed ||= old_videos == my_cool_list.videos
+        end
+      end
+
+      it "should return self" do
+        expect(my_cool_list.videos.shuffle!).to eq(my_cool_list.videos)
+      end
+    end
+
+    describe "uniq! method" do
+      let(:expected_videos) { [return_of_harmony, something_big, food_chain] }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      before do
+        my_cool_list.videos << something_big << food_chain
+      end
+
+      it "should respond to uniq! method" do
+        expect(my_cool_list.videos).to respond_to(:uniq!)
+      end
+
+      describe "when calling without block" do
+        it "should reflect changes" do
+          videos = my_cool_list.videos
+          videos.uniq!
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should reflect changes when loaded" do
+          videos = my_cool_list.videos.load
+          videos.uniq!
+          expect(videos).to eq(expected_videos)
+        end
+
+        it "should modify to_sql" do
+          videos = my_cool_list.videos
+          expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+          videos.uniq!
+          expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+        end
+
+        it "should affect ids" do
+          my_cool_list.videos.uniq!
+          expect(my_cool_list.video_ids).to eq(expected_video_ids)
+        end
+
+        it "should return self" do
+          videos = my_cool_list.videos
+          expect(videos.uniq!).to eq(videos)
+        end
+
+        it "should reset loaded state" do
+          videos = my_cool_list.videos.load
+          expect(videos).to be_loaded
+          videos.uniq!
+          expect(videos).not_to be_loaded
+        end
+      end
+
+      describe "when calling with block" do
+        let(:block) do
+          proc { |video| video.id % 2 }
+        end
+
+        it "should reflect changes" do
+          my_cool_list.videos.uniq!(&block)
+          expect(my_cool_list.videos).to eq([return_of_harmony, something_big])
+        end
+
+        it "should affect ids" do
+          my_cool_list.videos.uniq!(&block)
+          expect(my_cool_list.videos.map(&:id)).to eq([return_of_harmony, something_big].map(&:id))
+        end
+      end
+    end
+
+    describe "unshift method" do
+      let(:other_videos) { [escape_from_the_citadel, food_chain] }
+      let(:expected_videos) { other_videos + my_cool_videos }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to unshift method" do
+        expect(my_cool_list.videos).to respond_to(:unshift)
+      end
+
+      it "should reflect changes" do
+        videos = my_cool_list.videos
+        videos.unshift(*other_videos)
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        videos = my_cool_list.videos.load
+        videos.unshift(*other_videos)
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should modify to_sql" do
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+        videos.unshift(*other_videos)
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
+      it "should affect ids" do
+        my_cool_list.videos.unshift(*other_videos)
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
+      end
+
+      it "should return self" do
+        videos = my_cool_list.videos
+        expect(videos.unshift(*other_videos)).to eq(videos)
+      end
+
+      it "should reset loaded state" do
+        videos = my_cool_list.videos.load
+        expect(videos).to be_loaded
+        videos.unshift(*other_videos)
+        expect(videos).not_to be_loaded
       end
     end
   end

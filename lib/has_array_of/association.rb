@@ -187,6 +187,95 @@ module HasArrayOf
               end
             end
 
+            define_method :compact! do
+              send(mutate_method_name) do
+                ids.compact!
+                self
+              end
+            end
+
+            define_method :concat do |other|
+              send(mutate_method_name) do
+                ids.concat(other.map(&try_primary_key))
+                self
+              end
+            end
+
+            define_method :fill do |*args, &block|
+              send(mutate_method_name) do
+                if block
+                  ids.fill(*args) do |index|
+                    block.call(index).try(primary_key)
+                  end
+                else
+                  obj = args.shift
+                  ids.fill(obj.try(primary_key), *args)
+                end
+                self
+              end
+            end
+
+            define_method :insert do |index, *objects|
+              send(mutate_method_name) do
+                ids.insert(index, *objects.map(&try_primary_key))
+                self
+              end
+            end
+
+            define_method :replace do |other_ary|
+              send(mutate_method_name) do
+                ids.replace other_ary.map(&try_primary_key)
+                self
+              end
+            end
+
+            define_method :reverse! do
+              send(mutate_method_name) do
+                ids.reverse!
+                self
+              end
+            end
+
+            define_method :rotate! do |count=1|
+              send(mutate_method_name) do
+                ids.rotate! count
+                self
+              end
+            end
+
+            define_method :shuffle! do |**args|
+              send(mutate_method_name) do
+                ids.shuffle!(args)
+                self
+              end
+            end
+
+            define_method :uniq! do |&block|
+              if block
+                data = to_a
+                hash = data.reduce({}) do |memo, object|
+                  memo[object.send(primary_key)] = object
+                  memo
+                end
+                send(mutate_method_name) do
+                  ids.uniq! do |id|
+                    block.call(hash[id])
+                  end
+                end
+              else
+                send(mutate_method_name) do
+                  ids.uniq!
+                end
+              end
+              self
+            end
+
+            define_method :unshift do |*args|
+              send(mutate_method_name) do
+                ids.unshift(*args.map(&try_primary_key))
+              end
+              self
+            end
 
             define_method :to_a do
               hash = super().reduce({}) do |memo, object|
