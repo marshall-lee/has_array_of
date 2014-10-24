@@ -87,7 +87,7 @@ RSpec.describe HasArrayOf::Association do
       end
     end
 
-    describe "associated collection appender" do
+    describe "method <<" do
       let(:expected_videos) { [*my_cool_videos, escape_from_the_citadel] }
       let(:expected_video_ids) { expected_videos.map(&:id) }
 
@@ -149,7 +149,7 @@ RSpec.describe HasArrayOf::Association do
       end
     end
 
-    describe "associated collection array element assigner" do
+    describe "method []=" do
       it "should respond to []=" do
         expect(my_cool_list.videos).to respond_to(:[]=)
       end
@@ -260,6 +260,140 @@ RSpec.describe HasArrayOf::Association do
           videos = another_playlist.videos
           videos[1,2] = [nil, nil, nil]
           expect(another_playlist.video_ids).to eq([harlem_shake.id, nil, nil, nil, chandelier.id])
+        end
+      end
+    end
+
+    describe "compact! method" do
+      before {
+        my_cool_list.videos << nil
+        my_cool_list.save
+      }
+      let(:expected_videos) { [return_of_harmony, something_big] }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to compact! method" do
+        expect(my_cool_list.videos).to respond_to(:compact!)
+      end
+
+      it "should contain nil" do
+        expect(my_cool_list.videos).to include(nil)
+        expect(my_cool_list.videos.length).to eq(3)
+      end
+
+      it "should reflect changes" do
+        videos = my_cool_list.videos
+        videos.compact!
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        videos = my_cool_list.videos.load
+        videos.compact!
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should modify to_sql" do
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+        videos.compact!
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
+      it "should affect ids" do
+        my_cool_list.videos.compact!
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
+      end
+
+      it "should return self" do
+        videos = my_cool_list.videos
+        expect(videos.compact!).to eq(videos)
+      end
+
+      it "should reset loaded state" do
+        videos = my_cool_list.videos.load
+        expect(videos).to be_loaded
+        videos.compact!
+        expect(videos).not_to be_loaded
+      end
+
+      pending "chaining with other queries" do
+        # TODO: decide what to do when chaining
+        it "should work well with queries referencing fields other than primary_key" do
+          videos = my_cool_list.videos.where("title like 'Adventure%'")
+          expect {
+            videos.compact!
+          }.to change(videos, :count).by(-1)
+        end
+
+        it "should work well with queries referencing primary_key" do
+          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
+          expect {
+            videos.compact!
+          }.to change(videos, :count).by(-1)
+        end
+      end
+    end
+
+    describe "concat method" do
+      let(:other_videos) { [escape_from_the_citadel, food_chain] }
+      let(:expected_videos) { [return_of_harmony, something_big] + other_videos }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to compact! method" do
+        expect(my_cool_list.videos).to respond_to(:compact!)
+      end
+
+      it "should reflect changes" do
+        videos = my_cool_list.videos
+        videos.concat other_videos
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        videos = my_cool_list.videos.load
+        videos.concat other_videos
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should modify to_sql" do
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+        videos.concat other_videos
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
+      it "should affect ids" do
+        my_cool_list.videos.concat other_videos
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
+      end
+
+      it "should return self" do
+        videos = my_cool_list.videos
+        expect(videos.concat other_videos).to eq(videos)
+      end
+
+      it "should reset loaded state" do
+        videos = my_cool_list.videos.load
+        expect(videos).to be_loaded
+        videos.concat other_videos
+        expect(videos).not_to be_loaded
+      end
+
+      pending "chaining with other queries" do
+        # TODO: decide what to do when chaining
+        it "should work well with queries referencing fields other than primary_key" do
+          videos = my_cool_list.videos.where("title like 'Adventure%'")
+          expect {
+            videos.concat other_videos
+          }.to change(videos, :count).by(2)
+        end
+
+        it "should work well with queries referencing primary_key" do
+          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
+          expect {
+            videos.concat other_videos
+          }.to change(videos, :count).by(2)
         end
       end
     end
@@ -398,146 +532,6 @@ RSpec.describe HasArrayOf::Association do
       end
     end
 
-    describe "shift method" do
-      let(:expected_videos) { my_cool_videos.drop 1 }
-      let(:expected_video_ids) { expected_videos.map(&:id) }
-
-      it "should respond to shift method" do
-        expect(my_cool_list.videos).to respond_to(:shift)
-      end
-
-      it "should reflect changes" do
-        videos = my_cool_list.videos
-        videos.shift
-        expect(videos).to eq(expected_videos)
-      end
-
-      it "should reflect changes when loaded" do
-        videos = my_cool_list.videos.load
-        videos.shift
-        expect(videos).to eq(expected_videos)
-      end
-
-      it "should modify to_sql" do
-        videos = my_cool_list.videos
-        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
-        videos.shift
-        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
-      end
-
-      it "should affect ids" do
-        my_cool_list.videos.shift
-        expect(my_cool_list.video_ids).to eq(expected_video_ids)
-      end
-
-      it "should return shifted element" do
-        videos = my_cool_list.videos
-        expect(videos.shift).to eq(return_of_harmony)
-      end
-
-      it "should reset loaded state" do
-        videos = my_cool_list.videos.load
-        expect(videos).to be_loaded
-        videos.shift
-        expect(videos).not_to be_loaded
-      end
-
-      pending "chaining with other queries" do
-        # TODO: decide what to do when chaining
-        it "should work well with queries referencing fields other than primary_key" do
-          videos = my_cool_list.videos.where("title like 'Adventure%'")
-          expect {
-            videos.shift
-          }.to change(videos, :count).by(-1)
-        end
-
-        it "should work well with queries referencing primary_key" do
-          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
-          expect {
-            videos.shift
-          }.to change(videos, :count).by(-1)
-        end
-      end
-    end
-
-    describe "pop method" do
-      let(:expected_videos) { my_cool_videos.take(my_cool_videos.length-1) }
-      let(:expected_video_ids) { expected_videos.map(&:id) }
-
-      it "should respond to pop method" do
-        expect(my_cool_list.videos).to respond_to(:pop)
-      end
-
-      it "should reflect changes" do
-        videos = my_cool_list.videos
-        videos.pop
-        expect(videos).to eq(expected_videos)
-      end
-
-      it "should reflect changes when loaded" do
-        videos = my_cool_list.videos.load
-        videos.pop
-        expect(videos).to eq(expected_videos)
-      end
-
-      it "should modify to_sql" do
-        videos = my_cool_list.videos
-        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
-        videos.pop
-        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
-      end
-
-      it "should affect ids" do
-        my_cool_list.videos.pop
-        expect(my_cool_list.video_ids).to eq(expected_video_ids)
-      end
-
-      it "should return popped element" do
-        videos = my_cool_list.videos
-        expect(videos.pop).to eq(something_big)
-      end
-
-      it "should reset loaded state" do
-        videos = my_cool_list.videos.load
-        expect(videos).to be_loaded
-        videos.pop
-        expect(videos).not_to be_loaded
-      end
-
-      pending "chaining with other queries" do
-        # TODO: decide what to do when chaining
-        it "should work well with queries referencing fields other than primary_key" do
-          videos = my_cool_list.videos.where("title like 'Adventure%'")
-          expect {
-            videos.pop
-          }.to change(videos, :count).by(-1)
-        end
-
-        it "should work well with queries referencing primary_key" do
-          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
-          expect {
-            videos.pop
-          }.to change(videos, :count).by(-1)
-        end
-      end
-    end
-
-    describe "map! method" do
-      let(:expected_videos) { my_cool_videos.drop 1 }
-      let(:expected_video_ids) { expected_videos.map(&:id) }
-
-      it "should respond to map! method" do
-        expect(my_cool_list.videos).to respond_to(:map!)
-      end
-
-      # TODO: in progress
-
-      it "should return enumerator when calling without block" do
-        expect(my_cool_list.videos.map!).to be_a(Enumerator)
-        expect(my_cool_list.videos.map!.inspect).to include("map!")
-      end
-    end
-
     describe "delete_if method" do
       let(:expected_videos) { [return_of_harmony] }
       let(:expected_video_ids) { expected_videos.map(&:id) }
@@ -602,250 +596,6 @@ RSpec.describe HasArrayOf::Association do
           expect {
             videos.delete_if(&block)
           }.to change(videos, :count).by(-1)
-        end
-      end
-    end
-
-    describe "reject! method" do
-      let(:block) { proc { |video| video.title.include? "Something" } }
-
-      it "should respond to reject! method" do
-        expect(my_cool_list.videos).to respond_to(:reject!)
-      end
-
-      it "should return self if changes are made" do
-        expect(my_cool_list.videos.reject!(&block)).to eq(my_cool_list.videos)
-      end
-
-      it "should return nil if changes are not made" do
-        expect(my_cool_list.videos.reject!{ false }).to be_nil
-      end
-
-      it "should return enumerator when calling without block" do
-        expect(my_cool_list.videos.reject!).to be_a(Enumerator)
-        expect(my_cool_list.videos.reject!.inspect).to include("reject!")
-      end
-    end
-
-    describe "keep_if method" do
-      let(:expected_videos) { [something_big] }
-      let(:expected_video_ids) { expected_videos.map(&:id) }
-      let(:block) { proc { |video| video.title.include? "Something" } }
-
-      it "should respond to keep_if method" do
-        expect(my_cool_list.videos).to respond_to(:keep_if)
-      end
-
-      it "should reflect changes" do
-        videos = my_cool_list.videos
-        videos.keep_if(&block)
-        expect(videos).to eq(expected_videos)
-      end
-
-      it "should reflect changes when loaded" do
-        videos = my_cool_list.videos.load
-        videos.keep_if(&block)
-        expect(videos).to eq(expected_videos)
-      end
-
-      it "should modify to_sql" do
-        videos = my_cool_list.videos
-        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
-        videos.keep_if(&block)
-        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
-      end
-
-      it "should affect ids" do
-        my_cool_list.videos.keep_if(&block)
-        expect(my_cool_list.video_ids).to eq(expected_video_ids)
-      end
-
-      it "should return self" do
-        videos = my_cool_list.videos
-        expect(videos.keep_if(&block)).to eq(videos)
-      end
-
-      it "should reset loaded state" do
-        videos = my_cool_list.videos.load
-        expect(videos).to be_loaded
-        videos.keep_if(&block)
-        expect(videos).not_to be_loaded
-      end
-
-      it "should return enumerator when calling without block" do
-        expect(my_cool_list.videos.keep_if).to be_a(Enumerator)
-        expect(my_cool_list.videos.keep_if.inspect).to include("keep_if")
-      end
-
-      pending "chaining with other queries" do
-        # TODO: decide what to do when chaining
-        it "should work well with queries referencing fields other than primary_key" do
-          videos = my_cool_list.videos.where("title like 'Adventure%'")
-          expect {
-            videos.keep_if(&block)
-          }.to change(videos, :count).by(-1)
-        end
-
-        it "should work well with queries referencing primary_key" do
-          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
-          expect {
-            videos.keep_if(&block)
-          }.to change(videos, :count).by(-1)
-        end
-      end
-    end
-
-    describe "select! method" do
-      let(:block) { proc { |video| video.title.include? "Something" } }
-
-      it "should respond to select! method" do
-        expect(my_cool_list.videos).to respond_to(:select!)
-      end
-
-      it "should return self if changes are made" do
-        expect(my_cool_list.videos.select!(&block)).to eq(my_cool_list.videos)
-      end
-
-      it "should return nil if changes are not made" do
-        expect(my_cool_list.videos.select!{ true }).to be_nil
-      end
-
-      it "should return enumerator when calling without block" do
-        expect(my_cool_list.videos.select!).to be_a(Enumerator)
-        expect(my_cool_list.videos.select!.inspect).to include("select!")
-      end
-    end
-
-    describe "compact! method" do
-      before {
-        my_cool_list.videos << nil
-        my_cool_list.save
-      }
-      let(:expected_videos) { [return_of_harmony, something_big] }
-      let(:expected_video_ids) { expected_videos.map(&:id) }
-
-      it "should respond to compact! method" do
-        expect(my_cool_list.videos).to respond_to(:compact!)
-      end
-
-      it "should contain nil" do
-        expect(my_cool_list.videos).to include(nil)
-        expect(my_cool_list.videos.length).to eq(3)
-      end
-
-      it "should reflect changes" do
-        videos = my_cool_list.videos
-        videos.compact!
-        expect(videos).to eq(expected_videos)
-      end
-
-      it "should reflect changes when loaded" do
-        videos = my_cool_list.videos.load
-        videos.compact!
-        expect(videos).to eq(expected_videos)
-      end
-
-      it "should modify to_sql" do
-        videos = my_cool_list.videos
-        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
-        videos.compact!
-        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
-      end
-
-      it "should affect ids" do
-        my_cool_list.videos.compact!
-        expect(my_cool_list.video_ids).to eq(expected_video_ids)
-      end
-
-      it "should return self" do
-        videos = my_cool_list.videos
-        expect(videos.compact!).to eq(videos)
-      end
-
-      it "should reset loaded state" do
-        videos = my_cool_list.videos.load
-        expect(videos).to be_loaded
-        videos.compact!
-        expect(videos).not_to be_loaded
-      end
-
-      pending "chaining with other queries" do
-        # TODO: decide what to do when chaining
-        it "should work well with queries referencing fields other than primary_key" do
-          videos = my_cool_list.videos.where("title like 'Adventure%'")
-          expect {
-            videos.compact!
-          }.to change(videos, :count).by(-1)
-        end
-
-        it "should work well with queries referencing primary_key" do
-          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
-          expect {
-            videos.compact!
-          }.to change(videos, :count).by(-1)
-        end
-      end
-    end
-
-    describe "concat method" do
-      let(:other_videos) { [escape_from_the_citadel, food_chain] }
-      let(:expected_videos) { [return_of_harmony, something_big] + other_videos }
-      let(:expected_video_ids) { expected_videos.map(&:id) }
-
-      it "should respond to compact! method" do
-        expect(my_cool_list.videos).to respond_to(:compact!)
-      end
-
-      it "should reflect changes" do
-        videos = my_cool_list.videos
-        videos.concat other_videos
-        expect(videos).to eq(expected_videos)
-      end
-
-      it "should reflect changes when loaded" do
-        videos = my_cool_list.videos.load
-        videos.concat other_videos
-        expect(videos).to eq(expected_videos)
-      end
-
-      it "should modify to_sql" do
-        videos = my_cool_list.videos
-        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
-        videos.concat other_videos
-        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
-      end
-
-      it "should affect ids" do
-        my_cool_list.videos.concat other_videos
-        expect(my_cool_list.video_ids).to eq(expected_video_ids)
-      end
-
-      it "should return self" do
-        videos = my_cool_list.videos
-        expect(videos.concat other_videos).to eq(videos)
-      end
-
-      it "should reset loaded state" do
-        videos = my_cool_list.videos.load
-        expect(videos).to be_loaded
-        videos.concat other_videos
-        expect(videos).not_to be_loaded
-      end
-
-      pending "chaining with other queries" do
-        # TODO: decide what to do when chaining
-        it "should work well with queries referencing fields other than primary_key" do
-          videos = my_cool_list.videos.where("title like 'Adventure%'")
-          expect {
-            videos.concat other_videos
-          }.to change(videos, :count).by(2)
-        end
-
-        it "should work well with queries referencing primary_key" do
-          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
-          expect {
-            videos.concat other_videos
-          }.to change(videos, :count).by(2)
         end
       end
     end
@@ -1029,6 +779,152 @@ RSpec.describe HasArrayOf::Association do
       end
     end
 
+    describe "keep_if method" do
+      let(:expected_videos) { [something_big] }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+      let(:block) { proc { |video| video.title.include? "Something" } }
+
+      it "should respond to keep_if method" do
+        expect(my_cool_list.videos).to respond_to(:keep_if)
+      end
+
+      it "should reflect changes" do
+        videos = my_cool_list.videos
+        videos.keep_if(&block)
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        videos = my_cool_list.videos.load
+        videos.keep_if(&block)
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should modify to_sql" do
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+        videos.keep_if(&block)
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
+      it "should affect ids" do
+        my_cool_list.videos.keep_if(&block)
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
+      end
+
+      it "should return self" do
+        videos = my_cool_list.videos
+        expect(videos.keep_if(&block)).to eq(videos)
+      end
+
+      it "should reset loaded state" do
+        videos = my_cool_list.videos.load
+        expect(videos).to be_loaded
+        videos.keep_if(&block)
+        expect(videos).not_to be_loaded
+      end
+
+      it "should return enumerator when calling without block" do
+        expect(my_cool_list.videos.keep_if).to be_a(Enumerator)
+        expect(my_cool_list.videos.keep_if.inspect).to include("keep_if")
+      end
+
+      pending "chaining with other queries" do
+        # TODO: decide what to do when chaining
+        it "should work well with queries referencing fields other than primary_key" do
+          videos = my_cool_list.videos.where("title like 'Adventure%'")
+          expect {
+            videos.keep_if(&block)
+          }.to change(videos, :count).by(-1)
+        end
+
+        it "should work well with queries referencing primary_key" do
+          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
+          expect {
+            videos.keep_if(&block)
+          }.to change(videos, :count).by(-1)
+        end
+      end
+    end
+
+    describe "map! method" do
+      let(:expected_videos) { my_cool_videos.drop 1 }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to map! method" do
+        expect(my_cool_list.videos).to respond_to(:map!)
+      end
+
+      # TODO: in progress
+
+      it "should return enumerator when calling without block" do
+        expect(my_cool_list.videos.map!).to be_a(Enumerator)
+        expect(my_cool_list.videos.map!.inspect).to include("map!")
+      end
+    end
+
+    describe "pop method" do
+      let(:expected_videos) { my_cool_videos.take(my_cool_videos.length-1) }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to pop method" do
+        expect(my_cool_list.videos).to respond_to(:pop)
+      end
+
+      it "should reflect changes" do
+        videos = my_cool_list.videos
+        videos.pop
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        videos = my_cool_list.videos.load
+        videos.pop
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should modify to_sql" do
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+        videos.pop
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
+      it "should affect ids" do
+        my_cool_list.videos.pop
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
+      end
+
+      it "should return popped element" do
+        videos = my_cool_list.videos
+        expect(videos.pop).to eq(something_big)
+      end
+
+      it "should reset loaded state" do
+        videos = my_cool_list.videos.load
+        expect(videos).to be_loaded
+        videos.pop
+        expect(videos).not_to be_loaded
+      end
+
+      pending "chaining with other queries" do
+        # TODO: decide what to do when chaining
+        it "should work well with queries referencing fields other than primary_key" do
+          videos = my_cool_list.videos.where("title like 'Adventure%'")
+          expect {
+            videos.pop
+          }.to change(videos, :count).by(-1)
+        end
+
+        it "should work well with queries referencing primary_key" do
+          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
+          expect {
+            videos.pop
+          }.to change(videos, :count).by(-1)
+        end
+      end
+    end
+
     describe "push method" do
       let(:other_videos) { [escape_from_the_citadel, food_chain] }
       let(:expected_videos) { my_cool_videos + other_videos }
@@ -1072,6 +968,27 @@ RSpec.describe HasArrayOf::Association do
         expect(videos).to be_loaded
         videos.push(*other_videos)
         expect(videos).not_to be_loaded
+      end
+    end
+
+    describe "reject! method" do
+      let(:block) { proc { |video| video.title.include? "Something" } }
+
+      it "should respond to reject! method" do
+        expect(my_cool_list.videos).to respond_to(:reject!)
+      end
+
+      it "should return self if changes are made" do
+        expect(my_cool_list.videos.reject!(&block)).to eq(my_cool_list.videos)
+      end
+
+      it "should return nil if changes are not made" do
+        expect(my_cool_list.videos.reject!{ false }).to be_nil
+      end
+
+      it "should return enumerator when calling without block" do
+        expect(my_cool_list.videos.reject!).to be_a(Enumerator)
+        expect(my_cool_list.videos.reject!.inspect).to include("reject!")
       end
     end
 
@@ -1258,6 +1175,89 @@ RSpec.describe HasArrayOf::Association do
           expect(videos).to be_loaded
           videos.rotate! 2
           expect(videos).not_to be_loaded
+        end
+      end
+    end
+
+    describe "select! method" do
+      let(:block) { proc { |video| video.title.include? "Something" } }
+
+      it "should respond to select! method" do
+        expect(my_cool_list.videos).to respond_to(:select!)
+      end
+
+      it "should return self if changes are made" do
+        expect(my_cool_list.videos.select!(&block)).to eq(my_cool_list.videos)
+      end
+
+      it "should return nil if changes are not made" do
+        expect(my_cool_list.videos.select!{ true }).to be_nil
+      end
+
+      it "should return enumerator when calling without block" do
+        expect(my_cool_list.videos.select!).to be_a(Enumerator)
+        expect(my_cool_list.videos.select!.inspect).to include("select!")
+      end
+    end
+
+    describe "shift method" do
+      let(:expected_videos) { my_cool_videos.drop 1 }
+      let(:expected_video_ids) { expected_videos.map(&:id) }
+
+      it "should respond to shift method" do
+        expect(my_cool_list.videos).to respond_to(:shift)
+      end
+
+      it "should reflect changes" do
+        videos = my_cool_list.videos
+        videos.shift
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should reflect changes when loaded" do
+        videos = my_cool_list.videos.load
+        videos.shift
+        expect(videos).to eq(expected_videos)
+      end
+
+      it "should modify to_sql" do
+        videos = my_cool_list.videos
+        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+        videos.shift
+        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      end
+
+      it "should affect ids" do
+        my_cool_list.videos.shift
+        expect(my_cool_list.video_ids).to eq(expected_video_ids)
+      end
+
+      it "should return shifted element" do
+        videos = my_cool_list.videos
+        expect(videos.shift).to eq(return_of_harmony)
+      end
+
+      it "should reset loaded state" do
+        videos = my_cool_list.videos.load
+        expect(videos).to be_loaded
+        videos.shift
+        expect(videos).not_to be_loaded
+      end
+
+      pending "chaining with other queries" do
+        # TODO: decide what to do when chaining
+        it "should work well with queries referencing fields other than primary_key" do
+          videos = my_cool_list.videos.where("title like 'Adventure%'")
+          expect {
+            videos.shift
+          }.to change(videos, :count).by(-1)
+        end
+
+        it "should work well with queries referencing primary_key" do
+          videos = adventure_time_season6.videos.where(id: mlp_videos.map(&:id))
+          expect {
+            videos.shift
+          }.to change(videos, :count).by(-1)
         end
       end
     end

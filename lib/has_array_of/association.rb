@@ -31,6 +31,14 @@ module HasArrayOf
           owner = self
           query = model.arel_table[primary_key].in(ids.compact)
           model.where(query).extending do
+            define_method :to_a do
+              hash = super().reduce({}) do |memo, object|
+                memo[object.send(primary_key)] = object
+                memo
+              end
+              ids.map { |id| hash[id] }
+            end
+
             define_method mutate_method_name do |&block|
               reset
               where_values.reject! { |v| v == query }
@@ -39,13 +47,6 @@ module HasArrayOf
               query = model.arel_table[primary_key].in(ids.compact)
               where! query
               ret
-            end
-
-            define_method :push do |*objects|
-              send(mutate_method_name) do
-                ids.push(*objects.map(&try_primary_key))
-                self
-              end
             end
 
             define_method :<< do |object|
@@ -66,38 +67,25 @@ module HasArrayOf
               end
             end
 
-            define_method :shift do
-              # TODO: optimize
-              send(mutate_method_name) do
-                model.find(ids.shift)
-              end
-            end
-
-            define_method :pop do
-              # TODO: optimize
-              send(mutate_method_name) do
-                model.find(ids.pop)
-              end
-            end
-
-            define_method :map! do |&block|
-              if block
-                data = to_a
-                send(mutate_method_name) do
-                  data.each_with_index do |object, index|
-                    ids[index] = block.call(object).try(primary_key)
-                  end
-                end
-              else
-                to_enum :map!
-              end
-            end
-
             define_method :collect! do |&block|
               if block
                 map!(&block)
               else
                 to_enum(:collect!)
+              end
+            end
+
+            define_method :compact! do
+              send(mutate_method_name) do
+                ids.compact!
+                self
+              end
+            end
+
+            define_method :concat do |other|
+              send(mutate_method_name) do
+                ids.concat(other.map(&try_primary_key))
+                self
               end
             end
 
@@ -137,70 +125,6 @@ module HasArrayOf
               end
             end
 
-            define_method :reject! do |&block|
-              if block
-                data = to_a
-                hash = data.reduce({}) do |memo, object|
-                  memo[object.send(primary_key)] = object
-                  memo
-                end
-                send(mutate_method_name) do
-                  if ids.reject! { |id| block.call(hash[id]) }
-                    self
-                  end
-                end
-              else
-                to_enum(:reject!)
-              end
-            end
-
-            define_method :keep_if do |&block|
-              if block
-                data = to_a
-                hash = data.reduce({}) do |memo, object|
-                  memo[object.send(primary_key)] = object
-                  memo
-                end
-                send(mutate_method_name) do
-                  ids.keep_if { |id| block.call(hash[id]) }
-                  self
-                end
-              else
-                to_enum(:keep_if)
-              end
-            end
-
-            define_method :select! do |&block|
-              if block
-                data = to_a
-                hash = data.reduce({}) do |memo, object|
-                  memo[object.send(primary_key)] = object
-                  memo
-                end
-                send(mutate_method_name) do
-                  if ids.select! { |id| block.call(hash[id]) }
-                    self
-                  end
-                end
-              else
-                to_enum(:select!)
-              end
-            end
-
-            define_method :compact! do
-              send(mutate_method_name) do
-                ids.compact!
-                self
-              end
-            end
-
-            define_method :concat do |other|
-              send(mutate_method_name) do
-                ids.concat(other.map(&try_primary_key))
-                self
-              end
-            end
-
             define_method :fill do |*args, &block|
               send(mutate_method_name) do
                 if block
@@ -222,6 +146,66 @@ module HasArrayOf
               end
             end
 
+            define_method :keep_if do |&block|
+              if block
+                data = to_a
+                hash = data.reduce({}) do |memo, object|
+                  memo[object.send(primary_key)] = object
+                  memo
+                end
+                send(mutate_method_name) do
+                  ids.keep_if { |id| block.call(hash[id]) }
+                  self
+                end
+              else
+                to_enum(:keep_if)
+              end
+            end
+
+            define_method :map! do |&block|
+              if block
+                data = to_a
+                send(mutate_method_name) do
+                  data.each_with_index do |object, index|
+                    ids[index] = block.call(object).try(primary_key)
+                  end
+                end
+              else
+                to_enum :map!
+              end
+            end
+
+            define_method :pop do
+              # TODO: optimize
+              send(mutate_method_name) do
+                model.find(ids.pop)
+              end
+            end
+
+            define_method :push do |*objects|
+              send(mutate_method_name) do
+                ids.push(*objects.map(&try_primary_key))
+                self
+              end
+            end
+
+            define_method :reject! do |&block|
+              if block
+                data = to_a
+                hash = data.reduce({}) do |memo, object|
+                  memo[object.send(primary_key)] = object
+                  memo
+                end
+                send(mutate_method_name) do
+                  if ids.reject! { |id| block.call(hash[id]) }
+                    self
+                  end
+                end
+              else
+                to_enum(:reject!)
+              end
+            end
+
             define_method :replace do |other_ary|
               send(mutate_method_name) do
                 ids.replace other_ary.map(&try_primary_key)
@@ -240,6 +224,30 @@ module HasArrayOf
               send(mutate_method_name) do
                 ids.rotate! count
                 self
+              end
+            end
+
+            define_method :select! do |&block|
+              if block
+                data = to_a
+                hash = data.reduce({}) do |memo, object|
+                  memo[object.send(primary_key)] = object
+                  memo
+                end
+                send(mutate_method_name) do
+                  if ids.select! { |id| block.call(hash[id]) }
+                    self
+                  end
+                end
+              else
+                to_enum(:select!)
+              end
+            end
+
+            define_method :shift do
+              # TODO: optimize
+              send(mutate_method_name) do
+                model.find(ids.shift)
               end
             end
 
@@ -275,14 +283,6 @@ module HasArrayOf
                 ids.unshift(*args.map(&try_primary_key))
               end
               self
-            end
-
-            define_method :to_a do
-              hash = super().reduce({}) do |memo, object|
-                memo[object.send(primary_key)] = object
-                memo
-              end
-              ids.map { |id| hash[id] }
             end
           end
         end
