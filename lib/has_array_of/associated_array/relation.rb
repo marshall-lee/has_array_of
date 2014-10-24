@@ -27,12 +27,6 @@ module HasArrayOf
 
     include Enumerable
 
-    def length
-      ids.length
-    end
-
-    alias_method :size, :length
-
     def pluck(*column_names)
       raise NotImplementedError
     end
@@ -303,8 +297,8 @@ module HasArrayOf
     attr_reader :query
     attr_reader :relation
 
-    (::ActiveRecord::Relation.instance_methods - instance_methods - private_instance_methods).each do |method|
-      delegate method, :to => :relation
-    end
+    relation_methods = ::ActiveRecord::Relation.instance_methods - instance_methods - private_instance_methods
+    delegate *relation_methods, :to => :relation
+    delegate :size, :length, :to => :ids
   end
 end
