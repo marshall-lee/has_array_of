@@ -43,6 +43,15 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
   let!(:my_cool_list) {
     Playlist.create(video_ids: my_cool_video_ids.clone)
   }
+  let!(:two_food_chains_and_pony_videos) {
+    [food_chain, return_of_harmony, food_chain]
+  }
+  let!(:two_food_chains_and_pony_video_ids) {
+    two_food_chains_and_pony_videos.map(&:id)
+  }
+  let!(:two_food_chains_and_pony) {
+    Playlist.create(video_ids: two_food_chains_and_pony_video_ids)
+  }
 
   describe "associated collection reader" do
     it "should respond to scope method" do
@@ -56,9 +65,8 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
     end
 
     it "should correctly deal with dups" do
-      playlist = Playlist.create(videos: [food_chain, something_big, food_chain])
-      expect(playlist.videos).to eq([food_chain, something_big, food_chain])
-      expect(playlist.videos).to eq([food_chain, something_big, food_chain])
+      expect(two_food_chains_and_pony.videos).to eq(two_food_chains_and_pony_videos)
+      expect(two_food_chains_and_pony.videos.map(&:id)).to eq(two_food_chains_and_pony_video_ids)
     end
 
     it "should correctly deal with nil" do
@@ -66,6 +74,15 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
       expect(playlist.videos).to eq([nil, something_big, nil])
       playlist = Playlist.create video_ids: [nil, nil, nil]
       expect(playlist.videos).to eq([nil, nil, nil])
+    end
+
+    describe "when chaining with other queries" do
+      let(:playlist) { two_food_chains_and_pony }
+
+      it "should fetch correct objects" do
+        #expect(playlist.videos.where("title like '%Pony%'")).to eq([return_of_harmony])
+        #expect(playlist.videos.where("title like '%Adventure%'")).to eq([food_chain, food_chain])
+      end
     end
   end
 

@@ -5,7 +5,17 @@ module HasArrayOf
       @ids = owner.send(ids_attribute)
       @owner = owner
       build_query!
-      @relation = model.where query
+      @relation = model.where(query).extending do
+        pkey_attribute = options[:pkey_attribute]
+        define_method :to_a do
+          hash = super().reduce({}) do |memo, object|
+            memo[object.send(pkey_attribute)] = object
+            memo
+          end
+          ids.map { |id| hash[id] }
+        end
+      end
+
       if options[:extension]
         @relation = @relation.extending(options[:extension])
       end
@@ -36,7 +46,7 @@ module HasArrayOf
     end
 
     def mutate_ids
-      reset
+      relation.reset
       where_values.reject! { |v| v == query }
       ret = yield
       owner.send :write_attribute, ids_attribute, ids
