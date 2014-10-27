@@ -5,6 +5,7 @@ module HasArrayOf
       @ids = owner.send(ids_attribute)
       @owner = owner
       build_query!
+      me = self
       @relation = model.where(query).extending do
         pkey_attribute = options[:pkey_attribute]
         define_method :to_a do
@@ -12,7 +13,7 @@ module HasArrayOf
             memo[object.send(pkey_attribute)] = object
             memo
           end
-          ids.map { |id| hash[id] }
+          me.ids.map { |id| hash[id] }
         end
       end
 
@@ -20,6 +21,8 @@ module HasArrayOf
         @relation = @relation.extending(options[:extension])
       end
     end
+
+    attr_reader :ids
 
     def load
       relation.load
@@ -302,7 +305,6 @@ module HasArrayOf
       @options[:try_pkey_proc]
     end
 
-    attr_reader :ids
     attr_reader :owner
     attr_reader :query
     attr_reader :relation
