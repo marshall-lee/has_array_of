@@ -46,6 +46,7 @@ playlist.videos.pop                # playlist.video_ids = [video3.id]
 ```ruby
 Playlist.with_videos_containing([video1, video2])
 Playlist.with_videos_contained_in([video1, video2, video3, video4, ...])
+Playlist.with_any_videos_from([video1, video2, video3, video4, ...])
 ```
 
 # Contribute?
