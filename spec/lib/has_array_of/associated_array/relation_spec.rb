@@ -80,8 +80,8 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
       let(:playlist) { two_food_chains_and_pony }
 
       it "should fetch correct objects" do
-        #expect(playlist.videos.where("title like '%Pony%'")).to eq([return_of_harmony])
-        #expect(playlist.videos.where("title like '%Adventure%'")).to eq([food_chain, food_chain])
+        expect(playlist.videos.where("title like '%Pony%'")).to eq([return_of_harmony])
+        expect(playlist.videos.where("title like '%Adventure%'")).to eq([food_chain, food_chain])
       end
     end
   end
