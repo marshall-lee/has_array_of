@@ -1,3 +1,0 @@
-= has_array_of
-
-This project just rocks.
