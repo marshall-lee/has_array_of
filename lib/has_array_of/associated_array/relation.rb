@@ -10,7 +10,7 @@ module HasArrayOf
         pkey_attribute = options[:pkey_attribute]
         define_method :to_a do
           hash = super().reduce({}) do |memo, object|
-            memo[object.send(pkey_attribute)] = object
+            memo[object.try(pkey_attribute)] = object
             memo
           end
           me.ids.map { |id| hash[id] }
@@ -280,7 +280,7 @@ module HasArrayOf
 
     def ids_to_objects_hash
       relation.load.reduce({}) do |memo, object|
-        memo[object.send(pkey_attribute)] = object
+        memo[object.try(pkey_attribute)] = object
         memo
       end
     end
