@@ -49,6 +49,18 @@ Playlist.with_videos_contained_in([video1, video2, video3, video4, ...])
 Playlist.with_any_videos_from([video1, video2, video3, video4, ...])
 ```
 
+Anything like associated lists or arrays can be implemented such way. Now, the more typical example:
+
+```ruby
+class Tag; end
+
+class Post
+  has_array_of :tags
+end
+```
+
+Tags, arrays, lists — they're all the same!
+
 # Contribute?
 
 1. Fork it
