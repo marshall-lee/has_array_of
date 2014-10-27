@@ -83,6 +83,20 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
         expect(playlist.videos.where("title like '%Pony%'")).to eq([return_of_harmony])
         expect(playlist.videos.where("title like '%Adventure%'")).to eq([food_chain, food_chain])
       end
+
+      describe "when having nils" do
+        before do
+          playlist.videos << nil
+          playlist.save
+        end
+
+        it "should fetch correct objects" do
+          videos = playlist.videos
+          expect(videos.where("title like '%Pony%'")).to eq([return_of_harmony])
+          videos.where!("title like '%Adventure%'")
+          expect(videos.to_a).to eq([food_chain, food_chain])
+        end
+      end
     end
   end
 

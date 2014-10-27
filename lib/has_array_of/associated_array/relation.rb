@@ -29,9 +29,21 @@ module HasArrayOf
       self
     end
 
+    def where(*args)
+      relation.where(*args).extending do
+        def to_a
+          super.compact
+        end
+      end
+    end
+
+    def where!(*args)
+      @relation = where(*args)
+      self
+    end
+
     def to_a
-      hash = ids_to_objects_hash
-      ids.map { |id| hash[id] }
+      relation.to_a
     end
 
     def each(&block)
@@ -279,7 +291,7 @@ module HasArrayOf
     private
 
     def ids_to_objects_hash
-      relation.load.reduce({}) do |memo, object|
+      reduce({}) do |memo, object|
         memo[object.try(pkey_attribute)] = object
         memo
       end
