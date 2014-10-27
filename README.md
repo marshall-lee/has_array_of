@@ -33,11 +33,11 @@ Now we can work with `videos` like with regular array. It will correctly proxy a
 
 ```ruby
 playlist = Playlist.find(1)
-playlist.videos = [video1,video2]  # playlist.video_ids = [video1.id, video2.id]
-playlist.videos[0] = video3        # playlist.video_ids[0] = video3.id
-playlist.videos.insert(1, video4)  # playlist.video_ids = [video3.id, video4.id, video2.id]
-playlist.videos.delete_at(1)       # playlist.video_ids = [video3.id, video2.id]
-playlist.videos.pop                # playlist.video_ids = [video3.id]
+playlist.videos = [video1,video2]  # playlist.video_ids = [1, 2]
+playlist.videos[0] = video3        # playlist.video_ids[0] = 3
+playlist.videos.insert(1, video4)  # playlist.video_ids = [3, 4, 2]
+playlist.videos.delete_at(1)       # playlist.video_ids = [3, 2]
+playlist.videos.pop                # playlist.video_ids = [3]
 # ... and so on
 ```
 
