@@ -19,12 +19,12 @@ class CreatePlaylist < ActiveRecord::Migration
 end
 
 # app/models/playlist.rb
-class Playlist
+class Playlist < ActiveRecord::Base
   has_array_of :videos  # by convention, it assumes that Post has a video_ids array field
 end
 
 # app/models/video.rb
-class Video
+class Video < ActiveRecord::Base
   belongs_to_array_in_many :playlists # optional
 end
 ```
