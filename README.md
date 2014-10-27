@@ -1,12 +1,11 @@
 HasArrayOf
 ==========
 
-This plugin implements alternative way to do `has_and_belongs_to_many` association in Rails using a power of PostgreSQL arrays. In simple cases when you just need [acts_as_list](https://github.com/swanandp/acts_as_list) or [acts-as-taggable-on](https://github.com/mbleigh/acts-as-taggable-on) functionality the traditional approach using many-to-many with join tables is unnecessary. We can just store integer array of ids.
+This plugin implements alternative way to do `has_and_belongs_to_many` association in Rails using a power of PostgreSQL arrays. In many cases when you just need [acts_as_list](https://github.com/swanandp/acts_as_list) or [acts-as-taggable-on](https://github.com/mbleigh/acts-as-taggable-on) functionality the traditional approach using many-to-many with join tables is unnecessary. We can just store integer array of ids.
 
 # How does it work?
 
 Suppose we have a playlist that contains many videos. One video can be included in many playlists. It's a classic many-to-many situation but we implement it differently.
-
 
 ```ruby
 # db/migrate/20141027125227_create_playlist.rb
@@ -30,3 +29,30 @@ class Video
 end
 ```
 
+Now we can work with `videos` like with regular array. It will correctly proxy all changes to `video_ids` field.
+
+```ruby
+playlist = Playlist.find(1)
+playlist.videos = [video1,video2]  # playlist.video_ids = [video1.id, video2.id]
+playlist.videos[0] = video3        # playlist.video_ids[0] = video3.id
+playlist.videos.insert(1, video4)  # playlist.video_ids = [video3.id, video4.id, video2.id]
+playlist.videos.delete_at(1)       # playlist.video_ids = [video3.id, video2.id]
+playlist.videos.pop                # playlist.video_ids = [video3.id]
+# ... and so on
+```
+
+`has_array_of` also adds some search scopes:
+
+```ruby
+Playlist.with_videos_containing([video1, video2])
+Playlist.with_videos_contained_in([video1, video2, video3, video4, ...])
+```
+
+# Contribute?
+
+1. Fork it
+2. `% bundle install`
+3. `% createdb has_array_of_test`
+4. `% bundle exec rspec`
+5. ...
+6. Make pull request!
