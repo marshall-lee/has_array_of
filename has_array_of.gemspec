@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
   s.description = "Adds possibility of has_many and belongs_to_many associations using PostgreSQL arrays of ids."
   s.license     = "MIT"
 
-  s.files = Dir["{app,config,db,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.rdoc"]
+  s.files = Dir["{app,config,db,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.md"]
 
   s.add_dependency 'pg'
   s.add_runtime_dependency 'activerecord', '>= 4.0'
