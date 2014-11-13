@@ -8,12 +8,13 @@ module HasArrayOf
       me = self
       @relation = model.where(query).extending do
         pkey_attribute = options[:pkey_attribute]
-        define_method :to_a do
-          hash = super().reduce({}) do |memo, object|
+        define_method :load do
+          super()
+          hash = @records.reduce({}) do |memo, object|
             memo[object.try(pkey_attribute)] = object
             memo
           end
-          me.ids.map { |id| hash[id] }
+          @records = me.ids.map { |id| hash[id] }
         end
       end
 
@@ -31,8 +32,9 @@ module HasArrayOf
 
     def where(*args)
       relation.where(*args).extending do
-        def to_a
-          super.compact
+        def load
+          super
+          @records.compact!
         end
       end
     end
