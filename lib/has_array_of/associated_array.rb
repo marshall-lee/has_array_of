@@ -5,6 +5,7 @@ module HasArrayOf::AssociatedArray
     ids_attribute = options[:ids_attribute]
     pkey_attribute = options[:pkey_attribute]
     try_pkey_proc = options[:try_pkey_proc] = proc { |obj| obj.try(pkey_attribute) }
+    pkey_attribute_sql_type = owner_model.columns_hash[pkey_attribute.to_s].sql_type
     owner_model.class_eval do
       define_method name do
         Relation.new(self, options)
@@ -19,43 +20,25 @@ module HasArrayOf::AssociatedArray
         write_attribute(ids_attribute, ids)
       end
 
-      define_singleton_method "with_#{name}_containing" do |arg, *args|
-        ary = if args.any?
-                [arg, *args]
-              elsif arg.is_a? Array
-                arg
+      expression = proc do |first, *rest|
+        ary = if rest.empty?
+                Array.wrap(first)
+              else
+                [first, *rest]
               end
-        if ary
-          where "#{ids_attribute} @> ARRAY[#{ary.map(&try_pkey_proc).join(',')}]"
-        else
-          where "#{ids_attribute} @> ARRAY(#{arg.select(pkey_attribute).to_sql})"
-        end
+        "ARRAY[#{ary.map(&try_pkey_proc).join(',')}]::#{pkey_attribute_sql_type}[]"
       end
 
-      define_singleton_method "with_#{name}_contained_in" do |arg, *args|
-        ary = if args.any?
-                [arg, *args]
-              elsif arg.is_a? Array
-                arg
-              end
-        if ary
-          where "#{ids_attribute} <@ ARRAY[#{ary.map(&try_pkey_proc).join(',')}]"
-        else
-          where "#{ids_attribute} <@ ARRAY(#{arg.select(pkey_attribute).to_sql})"
-        end
+      define_singleton_method "with_#{name}_containing" do |*args|
+        where "#{ids_attribute} @> #{expression[args]}"
       end
 
-      define_singleton_method "with_any_#{singular_name}_from" do |arg, *args|
-        ary = if args.any?
-                [arg, *args]
-              elsif arg.is_a? Array
-                arg
-              end
-        if ary
-          where "#{ids_attribute} && ARRAY[#{ary.map(&try_pkey_proc).join(',')}]"
-        else
-          where "#{ids_attribute} && ARRAY(#{arg.select(pkey_attribute).to_sql})"
-        end
+      define_singleton_method "with_#{name}_contained_in" do |*args|
+        where "#{ids_attribute} <@ #{expression[args]}"
+      end
+
+      define_singleton_method "with_any_#{singular_name}_from" do |*args|
+        where "#{ids_attribute} && #{expression[args]}"
       end
     end
   end
