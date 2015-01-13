@@ -39,14 +39,17 @@ playlist.videos.insert(1, video4)  # playlist.video_ids = [3, 4, 2]
 playlist.videos.delete_at(1)       # playlist.video_ids = [3, 2]
 playlist.videos.pop                # playlist.video_ids = [3]
 # ... and so on
+
+video3.playlists
+# => [playlist]
 ```
 
 `has_array_of` also adds some search scopes:
 
 ```ruby
-Playlist.with_videos_containing([video1, video2])
-Playlist.with_videos_contained_in([video1, video2, video3, video4, ...])
-Playlist.with_any_videos_from([video1, video2, video3, video4, ...])
+Playlist.with_videos_containing(video1, video2)
+Playlist.with_videos_contained_in(video1, video2, video3, video4, ...)
+Playlist.with_any_videos_from(video1, video2, video3, video4, ...)
 ```
 
 Anything like associated lists or arrays can be implemented such way. Now, the more typical example:
