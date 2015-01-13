@@ -24,17 +24,15 @@ module HasArrayOf
                                         extension: extension
       end
 
-      def belongs_to_array_in_many(singular_name, options={})
-        singular_name = singular_name.to_s
-        name = singular_name.pluralize
-        class_name = (options[:class_name] || singular_name.camelize).to_s
+      def belongs_to_array_in_many(name, options={})
+        name = name.to_s
+        class_name = (options[:class_name] || name.singularize.camelize).to_s
         array_name = if options[:array_name]
                        options[:array_name].to_s
                      else
                        self.name.underscore.pluralize
                      end
-        AssociatedBelongs.define_in self, singular_name: singular_name,
-                                          name: name,
+        AssociatedBelongs.define_in self, name: name,
                                           class_name: class_name,
                                           array_name: array_name
       end
