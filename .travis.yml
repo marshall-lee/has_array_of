@@ -14,6 +14,15 @@ gemfile:
   - gemfiles/activerecord_edge.gemfile
 
 matrix:
+  exclude:
+    - rvm: 1.9.3
+      gemfile: gemfiles/activerecord_edge.gemfile
+    - rvm: 2.0
+      gemfile: gemfiles/activerecord_edge.gemfile
+    - rvm: 2.1
+      gemfile: gemfiles/activerecord_edge.gemfile
+    - rvm: jruby-19mode
+      gemfile: gemfiles/activerecord_edge.gemfile
   allow_failures:
     - rvm: jruby-19mode
 
