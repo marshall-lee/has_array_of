@@ -13,5 +13,9 @@ gemfile:
   - gemfiles/activerecord_4.2.gemfile
   - gemfiles/activerecord_edge.gemfile
 
+matrix:
+  allow_failures:
+    - rvm: jruby-19mode
+
 before_script:
   - "bundle exec rake db:setup POSTGRES_USERNAME=postgres"
