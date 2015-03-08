@@ -27,5 +27,5 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency 'rspec', '~> 3.2.0'
   s.add_development_dependency 'database_cleaner', '~> 1.4.0'
-  s.add_development_dependency 'with_model'
+  s.add_development_dependency 'with_model', '~> 1.2.1'
 end
