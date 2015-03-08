@@ -16,7 +16,12 @@ Gem::Specification.new do |s|
 
   s.files = Dir["{app,config,db,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.md"]
 
-  s.add_dependency 'pg'
+  unless RUBY_PLATFORM =~ /java/
+    s.add_dependency 'pg'
+  else
+    s.add_dependency 'activerecord-jdbcpostgresql-adapter'
+  end
+
   s.add_runtime_dependency 'activerecord', '>= 4.0'
   s.add_runtime_dependency 'railties', '>= 4.0'
 
