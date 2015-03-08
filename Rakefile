@@ -24,3 +24,15 @@ end
 
 Bundler::GemHelper.install_tasks
 
+task 'db:setup' do
+  cmd = "createdb"
+
+  username = ENV['POSTGRES_USERNAME']
+  cmd << " -U #{username}" if username
+
+  cmd << " has_array_of_test"
+
+  if system(cmd)
+    puts 'Database has_array_of_test was successfully created.'
+  end
+end
