@@ -7,8 +7,8 @@ appraise "activerecord-4.1" do
 end
 
 appraise "activerecord-4.2" do
-  gem "railties", ">= 4.2.0"
-  gem "activerecord", ">= 4.2.0"
+  gem "railties", "~> 4.2.0"
+  gem "activerecord", "~> 4.2.0"
 end
 
 appraise "activerecord-edge" do
