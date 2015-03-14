@@ -7,14 +7,10 @@ module HasArrayOf
       build_query!
       me = self
       @relation = model.where(query).extending do
-        pkey_attribute = options[:pkey_attribute]
+        try_pkey_proc = options[:try_pkey_proc]
         define_method :load do
           super()
-          hash = @records.reduce({}) do |memo, object|
-            memo[object.try(pkey_attribute)] = object
-            memo
-          end
-          @records = me.ids.map { |id| hash[id] }
+          @records = @records.index_by(&try_pkey_proc).values_at(*me.ids)
         end
       end
 
@@ -293,10 +289,7 @@ module HasArrayOf
     private
 
     def ids_to_objects_hash
-      reduce({}) do |memo, object|
-        memo[object.try(pkey_attribute)] = object
-        memo
-      end
+      index_by(&try_pkey_proc)
     end
 
     def build_query!
