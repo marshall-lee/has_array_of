@@ -1,25 +1,28 @@
 module HasArrayOf
   class AssociatedArray::Relation
-    def initialize(owner, options)
-      @options = options
-      @ids = owner.send(ids_attribute)
+    def initialize(owner, associated_model, ids_attr)
       @owner = owner
+      @associated_model = associated_model
+      @foreign_id_attr = associated_model.primary_key
+      @ids_attr = ids_attr
       build_query!
       me = self
-      @relation = model.where(query).extending do
-        try_pkey_proc = options[:try_pkey_proc]
+      @relation = associated_model.where(query).extending do
+        foreign_id_for_proc = me.send :foreign_id_for_proc
         define_method :load do
           super()
-          @records = @records.index_by(&try_pkey_proc).values_at(*me.ids)
+          @records = @records.index_by(&foreign_id_for_proc).values_at(*me.ids)
         end
-      end
-
-      if options[:extension]
-        @relation = @relation.extending(options[:extension])
       end
     end
 
-    attr_reader :ids
+    def ids
+      owner[ids_attr]
+    end
+
+    def ids=(new_ids)
+      owner[ids_attr] = new_ids
+    end
 
     def load
       relation.load
@@ -62,7 +65,7 @@ module HasArrayOf
       relation.reset
       where_values.reject! { |v| v == query }
       ret = yield
-      owner.send :write_attribute, ids_attribute, ids
+      self.ids = ids
       build_query!
       relation.where! query
       ret
@@ -70,7 +73,7 @@ module HasArrayOf
 
     def <<(object)
       mutate_ids do
-        ids << object.try(pkey_attribute)
+        ids << foreign_id_for(object)
         self
       end
     end
@@ -78,9 +81,9 @@ module HasArrayOf
     def []=(*index, val)
       mutate_ids do
         if val.is_a? Array
-          ids[*index] = val.map(&try_pkey_proc)
+          ids[*index] = val.map(&foreign_id_for_proc)
         else
-          ids[*index] = val.try(pkey_attribute)
+          ids[*index] = foreign_id_for(val)
         end
         val
       end
@@ -103,7 +106,7 @@ module HasArrayOf
 
     def concat(other)
       mutate_ids do
-        ids.concat(other.map(&try_pkey_proc))
+        ids.concat(other.map(&foreign_id_for_proc))
         self
       end
     end
@@ -111,9 +114,9 @@ module HasArrayOf
     def delete(object)
       # TODO: optimize
       mutate_ids do
-        id = ids.delete(object.try(pkey_attribute))
+        id = ids.delete(foreign_id_for(object))
         if id
-          model.find(id)
+          associated_model.find(id)
         end
       end
     end
@@ -123,7 +126,7 @@ module HasArrayOf
       mutate_ids do
         id = ids.delete_at(index)
         if id
-          model.find(id)
+          associated_model.find(id)
         end
       end
     end
@@ -144,13 +147,13 @@ module HasArrayOf
       if block_given?
         mutate_ids do
           ids.fill(*args) do |index|
-            (yield index).try(pkey_attribute)
+            foreign_id_for(yield index)
           end
         end
       else
         mutate_ids do
           obj = args.shift
-          ids.fill(obj.try(pkey_attribute), *args)
+          ids.fill(foreign_id_for(obj), *args)
         end
       end
       self
@@ -158,7 +161,7 @@ module HasArrayOf
 
     def insert(index, *objects)
       mutate_ids do
-        ids.insert(index, *objects.map(&try_pkey_proc))
+        ids.insert(index, *objects.map(&foreign_id_for_proc))
         self
       end
     end
@@ -180,7 +183,7 @@ module HasArrayOf
         data = to_a
         mutate_ids do
           data.each_with_index do |object, index|
-            ids[index] = (yield object).try(pkey_attribute)
+            ids[index] = foreign_id_for(yield object)
           end
         end
       else
@@ -191,13 +194,13 @@ module HasArrayOf
     def pop
       # TODO: optimize
       mutate_ids do
-        model.find(ids.pop)
+        associated_model.find(ids.pop)
       end
     end
 
     def push(*objects)
       mutate_ids do
-        ids.push(*objects.map(&try_pkey_proc))
+        ids.push(*objects.map(&foreign_id_for_proc))
         self
       end
     end
@@ -217,7 +220,7 @@ module HasArrayOf
 
     def replace(other_ary)
       mutate_ids do
-        ids.replace other_ary.map(&try_pkey_proc)
+        ids.replace other_ary.map(&foreign_id_for_proc)
         self
       end
     end
@@ -252,7 +255,7 @@ module HasArrayOf
     def shift
       # TODO: optimize
       mutate_ids do
-        model.find(ids.shift)
+        associated_model.find(ids.shift)
       end
     end
 
@@ -281,39 +284,31 @@ module HasArrayOf
 
     def unshift(*args)
       mutate_ids do
-        ids.unshift(*args.map(&try_pkey_proc))
+        ids.unshift(*args.map(&foreign_id_for_proc))
       end
       self
     end
 
     private
 
+    def foreign_id_for(obj)
+      obj[foreign_id_attr] if obj
+    end
+
+    def foreign_id_for_proc
+      @foreign_id_for_proc ||= method(:foreign_id_for)
+    end
+
     def ids_to_objects_hash
-      index_by(&try_pkey_proc)
+      index_by(&foreign_id_for_proc)
     end
 
     def build_query!
-      @query = model.arel_table[pkey_attribute].in(ids.compact)
+      @query = associated_model.arel_table[foreign_id_attr].in(ids.compact)
     end
 
-    def model
-      @options[:model]
-    end
-
-    def ids_attribute
-      @options[:ids_attribute]
-    end
-
-    def pkey_attribute
-      @options[:pkey_attribute]
-    end
-
-    def try_pkey_proc
-      @options[:try_pkey_proc]
-    end
-
-    attr_reader :owner
-    attr_reader :query
+    attr_reader :owner, :ids_attr
+    attr_reader :associated_model, :foreign_id_attr, :query
     attr_reader :relation
 
     relation_methods = ::ActiveRecord::Relation.instance_methods - instance_methods - private_instance_methods

@@ -8,7 +8,7 @@ module HasArrayOf::AssociatedArray
     pkey_attribute_sql_type = owner_model.columns_hash[pkey_attribute.to_s].sql_type
     owner_model.class_eval do
       define_method name do
-        Relation.new(self, options)
+        Relation.new(self, options[:model], ids_attribute)
       end
 
       define_method "#{name}=" do |objects|
