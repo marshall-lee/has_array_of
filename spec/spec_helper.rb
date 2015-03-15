@@ -41,3 +41,4 @@ end
 
 require 'support/db'
 require 'support/with_model'
+require 'support/contexts'
