@@ -4,6 +4,8 @@ HasArrayOf
 [![Build Status](https://travis-ci.org/marshall-lee/has_array_of.svg)](https://travis-ci.org/marshall-lee/has_array_of)
 [![Dependency Status](https://gemnasium.com/marshall-lee/has_array_of.svg)](https://gemnasium.com/marshall-lee/has_array_of)
 
+*WARNING*: This gem is a work in progress and hasn't released yet.
+
 This plugin implements alternative way to do `has_and_belongs_to_many` association in Rails using the power of PostgreSQL arrays. In many cases when you just need [acts_as_list](https://github.com/swanandp/acts_as_list) or [acts-as-taggable-on](https://github.com/mbleigh/acts-as-taggable-on) functionality the traditional approach using many-to-many with join tables is unnecessary. We can just store integer array of ids.
 
 # How does it work?
