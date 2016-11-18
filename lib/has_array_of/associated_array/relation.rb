@@ -304,7 +304,7 @@ module HasArrayOf
     end
 
     def build_query!
-      @query = associated_model.arel_table[foreign_id_attr].in(ids.compact)
+      @query = associated_model.arel_table[foreign_id_attr].in((ids ? ids : []).compact)
     end
 
     attr_reader :owner, :ids_attr

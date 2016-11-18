@@ -12,7 +12,9 @@ module HasArrayOf::AssociatedArray
       end
 
       define_method "#{name}=" do |objects|
-        ids = if objects.respond_to? :pluck
+        ids = if objects.blank?
+                []
+              elsif objects.respond_to? :pluck
                 objects.pluck(pkey_attribute)
               else
                 objects.map(&try_pkey_proc)
