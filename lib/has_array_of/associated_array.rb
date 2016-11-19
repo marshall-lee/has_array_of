@@ -16,6 +16,8 @@ module HasArrayOf::AssociatedArray
                 []
               elsif objects.respond_to? :pluck
                 objects.pluck(pkey_attribute)
+              elsif String === objects.first || Integer === objects.first
+                objects.delete_if(&:blank?).map(&:to_i)
               else
                 objects.map(&try_pkey_proc)
               end
