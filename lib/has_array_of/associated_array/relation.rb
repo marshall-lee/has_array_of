@@ -294,6 +294,20 @@ module HasArrayOf
     end
     alias_method :length, :size
 
+    delegate :find, :to => :relation
+
+    def method_missing(method, *args)
+      if relation.respond_to?(method)
+        relation.send method, *args
+      else
+        super
+      end
+    end
+
+    def respond_to?(method)
+      relation.respond_to?(method) || super
+    end
+
     private
 
     def foreign_id_for(obj)
@@ -316,7 +330,5 @@ module HasArrayOf
     attr_reader :associated_model, :foreign_id_attr, :query
     attr_reader :relation
 
-    relation_methods = ::ActiveRecord::Relation.instance_methods - instance_methods - private_instance_methods
-    delegate *relation_methods, :to => :relation
   end
 end
