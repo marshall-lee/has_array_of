@@ -289,6 +289,11 @@ module HasArrayOf
       self
     end
 
+    def size
+      ids ? ids.size : 0
+    end
+    alias_method :length, :size
+
     private
 
     def foreign_id_for(obj)
@@ -313,6 +318,5 @@ module HasArrayOf
 
     relation_methods = ::ActiveRecord::Relation.instance_methods - instance_methods - private_instance_methods
     delegate *relation_methods, :to => :relation
-    delegate :size, :length, :to => :ids
   end
 end
