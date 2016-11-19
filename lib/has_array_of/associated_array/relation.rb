@@ -11,7 +11,7 @@ module HasArrayOf
         foreign_id_for_proc = me.send :foreign_id_for_proc
         define_method :load do
           super()
-          @records = @records.index_by(&foreign_id_for_proc).values_at(*me.ids)
+          @records = @records.index_by(&foreign_id_for_proc).values_at(*me.ids).compact
         end
       end
     end
