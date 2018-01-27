@@ -5,7 +5,7 @@ module HasArrayOf::AssociatedArray
     ids_attribute = options[:ids_attribute]
     pkey_attribute = options[:pkey_attribute]
     try_pkey_proc = options[:try_pkey_proc] = proc { |obj| obj.try(pkey_attribute) }
-    pkey_attribute_sql_type = owner_model.columns_hash[pkey_attribute.to_s].sql_type
+    pkey_attribute_sql_type = owner_model.columns_hash[pkey_attribute.to_s].sql_type  rescue "integer"
     owner_model.class_eval do
       define_method name do
         Relation.new(self, options[:model], ids_attribute)
