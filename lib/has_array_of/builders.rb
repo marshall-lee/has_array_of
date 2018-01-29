@@ -14,7 +14,7 @@ module HasArrayOf
         class_name = (options[:class_name] || singular_name.camelize).to_s
         ids_attribute = "#{singular_name}_ids".to_sym
         model = class_name.constantize
-        pkey_attribute = model.primary_key.to_sym
+        pkey_attribute = model.primary_key.to_s.to_sym
 
         AssociatedArray.define_in self, name: name,
                                         singular_name: singular_name,
