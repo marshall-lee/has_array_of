@@ -26,19 +26,19 @@ module HasArrayOf::AssociatedArray
               else
                 [first, *rest]
               end
-        "ARRAY[#{ary.map(&try_pkey_proc).join(',')}]::#{pkey_attribute_sql_type}[]"
+        ary.map(&try_pkey_proc)
       end
 
       define_singleton_method "with_#{name}_containing" do |*args|
-        where "#{ids_attribute} @> #{expression[args]}"
+        where "#{ids_attribute} @> ARRAY[?]::#{pkey_attribute_sql_type}[]", expression[args]
       end
 
       define_singleton_method "with_#{name}_contained_in" do |*args|
-        where "#{ids_attribute} <@ #{expression[args]}"
+        where "#{ids_attribute} <@ ARRAY[?]::#{pkey_attribute_sql_type}[]", expression[args]
       end
 
       define_singleton_method "with_any_#{singular_name}_from" do |*args|
-        where "#{ids_attribute} && #{expression[args]}"
+        where "#{ids_attribute} && ARRAY[?]::#{pkey_attribute_sql_type}[]", expression[args]
       end
     end
   end
