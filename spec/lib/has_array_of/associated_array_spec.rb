@@ -21,6 +21,18 @@ RSpec.describe HasArrayOf::AssociatedArray do
     end
   end
 
+  context "with a `order` option" do
+    it "should order models" do
+      expect(my_alpha_list.videos).to eq adventure_time_videos.sort_by(&:title)
+    end
+  end
+
+  context "with a `sort` option" do
+    it "should order models" do
+      expect(my_title_length_list.videos).to eq adventure_time_videos.sort_by{|v| v.title.size}
+    end
+  end
+
   describe "`containing` scope" do
     it "should respond to scope method" do
       expect(Playlist).to respond_to(:with_videos_containing)

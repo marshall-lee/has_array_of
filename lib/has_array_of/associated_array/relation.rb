@@ -1,19 +1,37 @@
 module HasArrayOf
   class AssociatedArray::Relation
-    def initialize(owner, associated_model, ids_attr)
+    def initialize(owner, associated_model, ids_attr, options={})
       @owner = owner
       @associated_model = associated_model
       @foreign_id_attr = associated_model.primary_key
       @ids_attr = ids_attr
+      @options = options
       build_query!
       me = self
-      @relation = associated_model.where(query).extending do
+      @relation = associated_model.where(query)
+      @relation = @relation.order(order) if order.present?
+      @relation = @relation.extending do
         foreign_id_for_proc = me.send :foreign_id_for_proc
-        define_method :load do
-          super()
-          @records = @records.index_by(&foreign_id_for_proc).values_at(*me.ids).compact
+        if me.should_sort?
+          define_method :load do
+            super()
+            @records = @records.index_by(&foreign_id_for_proc).values_at(*me.ids).compact
+            @records = @records.sort_by(&me.sort) if me.sort
+          end
         end
       end
+    end
+
+    def order
+      @options[:order_by] || @options[:order]
+    end
+
+    def sort
+      @options[:sort_by] || @options[:sort]
+    end
+
+    def should_sort?
+      !order.present?
     end
 
     def ids

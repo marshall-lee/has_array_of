@@ -8,7 +8,7 @@ module HasArrayOf::AssociatedArray
     # pkey_attribute_sql_type = owner_model.columns_hash[pkey_attribute.to_s].sql_type
     owner_model.class_eval do
       define_method name do
-        Relation.new(self, options[:model], ids_attribute)
+        Relation.new(self, options[:model], ids_attribute, options)
       end
 
       define_method "#{name}=" do |objects|
@@ -30,8 +30,11 @@ module HasArrayOf::AssociatedArray
               else
                 [first, *rest]
               end
-        # "ARRAY[#{ary.map(&try_pkey_proc).join(',')}]::#{pkey_attribute_sql_type}[]"
-        "ARRAY[#{ary.map(&try_pkey_proc).join(',')}]"
+        if ary.empty?
+          "ARRAY[]::#{owner_model.columns_hash[ids_attribute.to_s].sql_type}[]"
+        else
+          "ARRAY[#{ary.map(&try_pkey_proc).join(',')}]"
+        end
       end
 
       define_singleton_method "with_#{name}_containing" do |*args|
