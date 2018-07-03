@@ -16,6 +16,26 @@ RSpec.shared_context "Playlist model" do
       has_array_of :videos
     end
   end
+
+  with_model :AlphaPlaylist do
+    table do |t|
+      t.integer :video_ids, array: true, default: []
+    end
+
+    model do
+      has_array_of :videos, order_by: :title
+    end
+  end
+
+  with_model :TitleLengthPlaylist do
+    table do |t|
+      t.integer :video_ids, array: true, default: []
+    end
+
+    model do
+      has_array_of :videos, sort_by: ->(item){item.title.size}
+    end
+  end
 end
 
 RSpec.shared_context "Video model belonging to Playlist" do
@@ -60,5 +80,13 @@ RSpec.shared_context "TV series" do
   let!(:my_cool_video_ids) { my_cool_videos.map(&:id) }
   let!(:my_cool_list) {
     Playlist.create(video_ids: my_cool_video_ids.dup)
+  }
+
+  let!(:my_alpha_list){
+    AlphaPlaylist.create(video_ids: adventure_time_videos.pluck(:id) + [100])
+  }
+
+  let!(:my_title_length_list){
+    TitleLengthPlaylist.create(video_ids: adventure_time_videos.reverse.pluck(:id) + [100])
   }
 end

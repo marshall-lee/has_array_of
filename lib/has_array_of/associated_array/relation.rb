@@ -1,19 +1,37 @@
 module HasArrayOf
   class AssociatedArray::Relation
-    def initialize(owner, associated_model, ids_attr)
+    def initialize(owner, associated_model, ids_attr, options={})
       @owner = owner
       @associated_model = associated_model
       @foreign_id_attr = associated_model.primary_key
       @ids_attr = ids_attr
+      @options = options
       build_query!
       me = self
-      @relation = associated_model.where(query).extending do
+      @relation = associated_model.where(query)
+      @relation = @relation.order(order) if order.present?
+      @relation = @relation.extending do
         foreign_id_for_proc = me.send :foreign_id_for_proc
-        define_method :load do
-          super()
-          @records = @records.index_by(&foreign_id_for_proc).values_at(*me.ids)
+        if me.should_sort?
+          define_method :load do
+            super()
+            @records = @records.index_by(&foreign_id_for_proc).values_at(*me.ids).compact
+            @records = @records.sort_by(&me.sort) if me.sort
+          end
         end
       end
+    end
+
+    def order
+      @options[:order_by] || @options[:order]
+    end
+
+    def sort
+      @options[:sort_by] || @options[:sort]
+    end
+
+    def should_sort?
+      !order.present?
     end
 
     def ids
@@ -289,6 +307,25 @@ module HasArrayOf
       self
     end
 
+    def size
+      ids ? ids.size : 0
+    end
+    alias_method :length, :size
+
+    delegate :find, :to => :relation
+
+    def method_missing(method, *args)
+      if relation.respond_to?(method)
+        relation.send method, *args
+      else
+        super
+      end
+    end
+
+    def respond_to?(method)
+      relation.respond_to?(method) || super
+    end
+
     private
 
     def foreign_id_for(obj)
@@ -304,15 +341,12 @@ module HasArrayOf
     end
 
     def build_query!
-      @query = associated_model.arel_table[foreign_id_attr].in(ids.compact)
+      @query = associated_model.arel_table[foreign_id_attr].in((ids ? ids : []).compact)
     end
 
     attr_reader :owner, :ids_attr
     attr_reader :associated_model, :foreign_id_attr, :query
     attr_reader :relation
 
-    relation_methods = ::ActiveRecord::Relation.instance_methods - instance_methods - private_instance_methods
-    delegate *relation_methods, :to => :relation
-    delegate :size, :length, :to => :ids
   end
 end
