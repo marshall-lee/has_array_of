@@ -1,19 +1,12 @@
 module HasArrayOf
   class AssociatedArray::Relation
-    def initialize(owner, associated_model, ids_attr)
+    def initialize(owner, model, ids_attr, scope: model.all)
       @owner = owner
-      @associated_model = associated_model
-      @foreign_id_attr = associated_model.primary_key
+      @model = model
+      @foreign_id_attr = model.primary_key
       @ids_attr = ids_attr
+      @scope = scope
       build_query!
-      me = self
-      @relation = associated_model.where(query).extending do
-        foreign_id_for_proc = me.send :foreign_id_for_proc
-        define_method :load do
-          super()
-          @records = @records.index_by(&foreign_id_for_proc).values_at(*me.ids)
-        end
-      end
     end
 
     def ids
@@ -29,26 +22,33 @@ module HasArrayOf
       self
     end
 
-    def where(*args)
-      relation.where(*args).extending do
-        def load
-          super
-          @records.compact!
-        end
+    def records
+      @relation.load
+      records = @relation.instance_variable_get(:@records)
+      unless @records.equal? records
+        @records = records.index_by(&foreign_id_for_proc).values_at(*ids)
+        @records.compact!
       end
+      @records
+    end
+
+    def where(*args)
+      self.class.new(@owner, @model, @ids_attr, scope: @scope.where(*args))
     end
 
     def where!(*args)
-      @relation = where(*args)
+      @scope.where!(*args)
+      build_query!
       self
     end
 
-    def to_a
-      relation.to_a
+    def to_ary
+      records.dup
     end
+    alias to_a to_ary
 
     def each(&block)
-      to_a.each(&block)
+      records.each(&block)
     end
 
     include Enumerable
@@ -63,11 +63,9 @@ module HasArrayOf
 
     def mutate_ids
       relation.reset
-      where_values.reject! { |v| v == query }
       ret = yield
       self.ids = ids
       build_query!
-      relation.where! query
       ret
     end
 
@@ -116,7 +114,7 @@ module HasArrayOf
       mutate_ids do
         id = ids.delete(foreign_id_for(object))
         if id
-          associated_model.find(id)
+          @model.find(id)
         end
       end
     end
@@ -126,7 +124,7 @@ module HasArrayOf
       mutate_ids do
         id = ids.delete_at(index)
         if id
-          associated_model.find(id)
+          @model.find(id)
         end
       end
     end
@@ -194,7 +192,7 @@ module HasArrayOf
     def pop
       # TODO: optimize
       mutate_ids do
-        associated_model.find(ids.pop)
+        @model.find(ids.pop)
       end
     end
 
@@ -255,7 +253,7 @@ module HasArrayOf
     def shift
       # TODO: optimize
       mutate_ids do
-        associated_model.find(ids.shift)
+        @model.find(ids.shift)
       end
     end
 
@@ -304,15 +302,18 @@ module HasArrayOf
     end
 
     def build_query!
-      @query = associated_model.arel_table[foreign_id_attr].in(ids.compact)
+      @relation = @model.where(foreign_id_attr => ids.compact).merge(@scope)
     end
 
     attr_reader :owner, :ids_attr
-    attr_reader :associated_model, :foreign_id_attr, :query
+    attr_reader :foreign_id_attr
     attr_reader :relation
+    delegate :each, to: :records
 
-    relation_methods = ::ActiveRecord::Relation.instance_methods - instance_methods - private_instance_methods
-    delegate *relation_methods, :to => :relation
+    # relation_methods = ::ActiveRecord::Relation.public_instance_methods - instance_methods - private_instance_methods
+    delegate :loaded?,
+             :to_sql,
+             :to => :relation
     delegate :size, :length, :to => :ids
   end
 end

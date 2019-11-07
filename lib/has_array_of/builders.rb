@@ -14,13 +14,11 @@ module HasArrayOf
         class_name = (options[:class_name] || singular_name.camelize).to_s
         ids_attribute = "#{singular_name}_ids".to_sym
         model = class_name.constantize
-        pkey_attribute = model.primary_key.to_sym
 
         AssociatedArray.define_in self, name: name,
                                         singular_name: singular_name,
                                         ids_attribute: ids_attribute,
                                         model: model,
-                                        pkey_attribute: pkey_attribute,
                                         extension: extension
       end
 

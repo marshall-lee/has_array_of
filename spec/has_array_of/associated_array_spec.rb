@@ -75,6 +75,12 @@ RSpec.describe HasArrayOf::AssociatedArray do
 
       expect(Playlist.with_videos_contained_in(food_chain)).to eq([])
     end
+
+    describe "when passing empty array" do
+      it "should fetch nothing" do
+        expect(Playlist.with_videos_contained_in([])).to eq []
+      end
+    end
   end
 
   describe "`with any from` scope" do
@@ -90,6 +96,12 @@ RSpec.describe HasArrayOf::AssociatedArray do
                                                                              adventure_time_season6)
 
       expect(Playlist.with_any_video_from(food_chain)).to eq([])
+    end
+
+    describe "when passing empty array" do
+      it "should fetch nothing" do
+        expect(Playlist.with_any_video_from([])).to eq []
+      end
     end
   end
 end
