@@ -1,8 +1,7 @@
 HasArrayOf
 ==========
 
-[![Build Status](https://travis-ci.org/marshall-lee/has_array_of.svg)](https://travis-ci.org/marshall-lee/has_array_of)
-[![Dependency Status](https://gemnasium.com/marshall-lee/has_array_of.svg)](https://gemnasium.com/marshall-lee/has_array_of)
+![](https://github.com/marshall-lee/has_array_of/workflows/RSpec/badge.svg)
 
 *WARNING*: This gem is a work in progress and hasn't released yet.
 
