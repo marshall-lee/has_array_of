@@ -1,0 +1,73 @@
+name: RSpec
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:12.0
+        env:
+          POSTGRES_USER: runner
+          POSTGRES_DB: has_array_of_test
+        ports:
+        # will assign a random free host port
+        - 5432/tcp
+        # needed because the postgres container does not provide a healthcheck
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    strategy:
+      matrix:
+        ruby:
+          - 2.4.x
+          - 2.5.x
+          - 2.6.x
+        gemfile:
+          - gemfiles/activerecord_4.2.gemfile
+          - gemfiles/activerecord_5.0.gemfile
+          - gemfiles/activerecord_5.1.gemfile
+          - gemfiles/activerecord_5.2.gemfile
+          - gemfiles/activerecord_6.0.gemfile
+          - gemfiles/activerecord_edge.gemfile
+        exclude:
+          - ruby: 2.4.x
+            gemfile: gemfiles/activerecord_6.0.gemfile
+          - ruby: 2.4.x
+            gemfile: gemfiles/activerecord_edge.gemfile
+    env:
+      BUNDLE_GEMFILE: ${{ format('{0}/{1}', github.workspace, matrix.gemfile) }}
+      BUNDLE_PATH: ${{ format('{0}/vendor/bundle', github.workspace) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Setup ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - name: Install PostgreSQL lib
+        run: sudo apt-get install libpq-dev
+      - name: Install Bundler
+        run: command -v bundler || gem install bundler:1.17.3
+      - name: Cache Bundler
+        uses: actions/cache@v1
+        id: cache-bundler
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gem-${{ matrix.ruby }}-${{ hashFiles(format('{0}/{1}.lock', github.workspace, matrix.gemfile)) }}
+          restore-keys: |
+            ${{ runner.os }}-gem-${{ matrix.ruby }}-
+      - name: Install Bundler dependencies
+        if: steps.cache-bundler.outputs.cache-hit != 'true'
+        run: bundle install --path=$BUNDLE_PATH --deployment --jobs=4
+      - name: Check Bunlder dependencies
+        run: bundle check --path=$BUNDLE_PATH
+      - name: RSpec
+        run: bundle exec rspec
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
+
