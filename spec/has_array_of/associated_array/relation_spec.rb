@@ -33,9 +33,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should correctly deal with nil" do
       playlist = Playlist.create video_ids: [nil, something_big.id, nil]
-      expect(playlist.videos).to eq([nil, something_big, nil])
+      expect(playlist.videos).to eq([something_big])
       playlist = Playlist.create video_ids: [nil, nil, nil]
-      expect(playlist.videos).to eq([nil, nil, nil])
+      expect(playlist.videos).to eq([])
     end
 
     describe "when chaining with other queries" do
@@ -101,9 +101,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
       videos << escape_from_the_citadel
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -153,9 +153,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
       it "should modify to_sql" do
         videos = my_cool_list.videos
-        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+        expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
         videos[0] = escape_from_the_citadel
-        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+        expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
       end
 
       it "should reset loaded state" do
@@ -240,7 +240,7 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
     end
   end
 
-  describe "compact! method" do
+  xdescribe "compact! method" do
     before {
       my_cool_list.videos << nil
       my_cool_list.save
@@ -271,9 +271,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
       videos.compact!
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -317,9 +317,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
       videos.concat other_videos
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -362,9 +362,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
       videos.delete something_big
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -412,9 +412,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
       videos.delete_at 0
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -463,9 +463,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
       videos.delete_if(&block)
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -515,9 +515,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
       it "should modify to_sql" do
         videos = my_cool_list.videos
-        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+        expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
         videos.fill food_chain
-        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+        expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
       end
 
       it "should affect ids" do
@@ -584,9 +584,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
       it "should modify to_sql" do
         videos = my_cool_list.videos
-        expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+        expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
         videos.fill { |i| other_videos[i] }
-        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+        expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
       end
 
       it "should affect ids" do
@@ -649,9 +649,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
       videos.insert 1, *other_videos
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -695,9 +695,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
       videos.keep_if(&block)
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -761,9 +761,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
       videos.pop
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -807,9 +807,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_list.videos.map(&:id))
       videos.push(*other_videos)
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -874,9 +874,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_list.videos.map(&:id))
       videos.replace other_videos
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -919,9 +919,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_list.videos.map(&:id))
       videos.reverse!
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -974,9 +974,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
       it "should modify to_sql" do
         videos = my_cool_list.videos
-        expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+        expect(videos.to_sql).to have_sql_IN_stmt(my_cool_list.videos.map(&:id))
         videos.rotate!
-        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+        expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
       end
 
       it "should affect ids" do
@@ -1014,9 +1014,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
       it "should modify to_sql" do
         videos = my_cool_list.videos
-        expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+        expect(videos.to_sql).to have_sql_IN_stmt(my_cool_list.videos.map(&:id))
         videos.rotate! 2
-        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+        expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
       end
 
       it "should affect ids" do
@@ -1081,9 +1081,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_videos.map(&:id))
       videos.shift
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do
@@ -1166,9 +1166,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
       it "should modify to_sql" do
         videos = my_cool_list.videos
-        expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+        expect(videos.to_sql).to have_sql_IN_stmt(my_cool_list.videos.map(&:id))
         videos.uniq!
-        expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+        expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
       end
 
       it "should affect ids" do
@@ -1229,9 +1229,9 @@ RSpec.describe HasArrayOf::AssociatedArray::Relation do
 
     it "should modify to_sql" do
       videos = my_cool_list.videos
-      expect(videos.to_sql).to include("(#{my_cool_list.videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(my_cool_list.videos.map(&:id))
       videos.unshift(*other_videos)
-      expect(videos.to_sql).to include("(#{expected_videos.map(&:id).join(', ')})")
+      expect(videos.to_sql).to have_sql_IN_stmt(expected_videos.map(&:id))
     end
 
     it "should affect ids" do

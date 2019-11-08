@@ -2,14 +2,13 @@
 
 source "https://rubygems.org"
 
-gem "railties", "~> 4.2.0"
-gem "activerecord", "~> 4.2.0"
+gem "with_model", git: "https://github.com/Casecommons/with_model"
+gem "activerecord", "~> 4.2.11.1"
+gem "pg", "~> 0.15"
 
 group :local_development do
-  gem "guard"
-  gem "guard-rspec"
-  gem "appraisal"
-  gem "rake"
+  gem "pry"
+  gem "pry-byebug"
 end
 
-gemspec :path => "../"
+gemspec path: "../"

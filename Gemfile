@@ -13,9 +13,9 @@ gemspec
 # To use debugger
 # gem 'debugger'
 
+gem 'with_model', git: 'https://github.com/Casecommons/with_model'
+
 group :local_development do
-  gem 'guard'
-  gem 'guard-rspec'
-  gem 'appraisal'
-  gem 'rake'
+  gem 'pry'
+  gem 'pry-byebug'
 end
