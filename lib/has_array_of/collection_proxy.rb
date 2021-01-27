@@ -1,6 +1,7 @@
 class HasArrayOf::CollectionProxy
   extend Forwardable
 
+  # TODO: pass Setup object
   def initialize(owner, model, ids_attr, scope: model.all)
     @owner = owner
     @model = model
@@ -27,7 +28,7 @@ class HasArrayOf::CollectionProxy
     _relation.load
     records = _relation.instance_variable_get(:@records)
     unless @records.equal? records
-      @records = records.index_by { |obj| foreign_key_for(obj) }.values_at(*ids)
+      @records = records.index_by { |obj| try_foreign_key(obj) }.values_at(*ids)
       @records.compact!
     end
     @records
@@ -67,16 +68,16 @@ class HasArrayOf::CollectionProxy
   end
 
   def <<(object)
-    ids << foreign_key_for(object)
+    ids << try_foreign_key(object)
     touch_ids
     self
   end
 
   def []=(*index, val)
     if val.is_a? Array
-      ids[*index] = val.map { |obj| foreign_key_for(obj) }
+      ids[*index] = val.map { |obj| try_foreign_key(obj) }
     else
-      ids[*index] = foreign_key_for(val)
+      ids[*index] = try_foreign_key(val)
     end
     touch_ids
     val
@@ -97,14 +98,14 @@ class HasArrayOf::CollectionProxy
   end
 
   def concat(other)
-    ids.concat(other.map { |obj| foreign_key_for(obj) })
+    ids.concat(other.map { |obj| try_foreign_key(obj) })
     touch_ids
     self
   end
 
   def delete(object)
     # TODO: optimize
-    id = ids.delete(foreign_key_for(object))
+    id = ids.delete(try_foreign_key(object))
     touch_ids
     if id
       @model.find(id)
@@ -134,18 +135,18 @@ class HasArrayOf::CollectionProxy
   def fill(*args)
     if block_given?
       ids.fill(*args) do |index|
-        foreign_key_for(yield index)
+        try_foreign_key(yield index)
       end
     else
       obj = args.shift
-      ids.fill(foreign_key_for(obj), *args)
+      ids.fill(try_foreign_key(obj), *args)
     end
     touch_ids
     self
   end
 
   def insert(index, *objects)
-    ids.insert(index, *objects.map { |obj| foreign_key_for(obj) })
+    ids.insert(index, *objects.map { |obj| try_foreign_key(obj) })
     touch_ids
     self
   end
@@ -164,7 +165,7 @@ class HasArrayOf::CollectionProxy
   def map!
     if block_given?
       to_a.each_with_index do |object, index|
-        ids[index] = foreign_key_for(yield object)
+        ids[index] = try_foreign_key(yield object)
       end.tap { touch_ids }
     else
       to_enum :map!
@@ -177,7 +178,7 @@ class HasArrayOf::CollectionProxy
   end
 
   def push(*objects)
-    ids.push(*objects.map{ |obj| foreign_key_for(obj) })
+    ids.push(*objects.map{ |obj| try_foreign_key(obj) })
     touch_ids
     self
   end
@@ -194,7 +195,7 @@ class HasArrayOf::CollectionProxy
   end
 
   def replace(other_ary)
-    ids.replace other_ary.map{ |obj| foreign_key_for(obj) }
+    ids.replace other_ary.map{ |obj| try_foreign_key(obj) }
     touch_ids
     self
   end
@@ -247,19 +248,19 @@ class HasArrayOf::CollectionProxy
   end
 
   def unshift(*args)
-    ids.unshift(*args.map{ |obj| foreign_key_for(obj) })
+    ids.unshift(*args.map{ |obj| try_foreign_key(obj) })
     touch_ids
     self
   end
 
   private
 
-  def foreign_key_for(obj)
+  def try_foreign_key(obj)
     obj[@foreign_key] if obj
   end
 
   def ids_to_objects_hash
-    index_by{ |obj| foreign_key_for(obj) }
+    index_by{ |obj| try_foreign_key(obj) }
   end
 
   def _relation
