@@ -52,7 +52,7 @@ class HasArrayOf::Setup::HasMany
   end
 
   def try_pkey(obj)
-    obj.try(@owner_model.primary_key)
+    obj[@owner_model.primary_key] if obj
   end
 
   def coerce_ids(first_obj, *rest_objs)
