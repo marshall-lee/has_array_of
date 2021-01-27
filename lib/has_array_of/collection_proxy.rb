@@ -1,4 +1,6 @@
 class HasArrayOf::CollectionProxy
+  extend Forwardable
+
   def initialize(owner, model, ids_attr, scope: model.all)
     @owner = owner
     @model = model
@@ -301,9 +303,7 @@ class HasArrayOf::CollectionProxy
     @relation = @scope.merge(@unscoped.where @foreign_key => ids.compact)
   end
 
-  delegate :each, to: :records
-
-  # relation_methods = ::ActiveRecord::Relation.public_instance_methods - instance_methods - private_instance_methods
-  delegate :loaded?, :to_sql, :to => :@relation
-  delegate :size, :length, :to => :ids
+  def_delegators :records, :each
+  def_delegators :@relation, :loaded?, :to_sql
+  def_delegators :ids, :size, :length
 end
