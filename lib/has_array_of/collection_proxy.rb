@@ -8,7 +8,6 @@ class HasArrayOf::CollectionProxy
     @ids_attr = ids_attr
     @scope = scope
     @unscoped = model.unscoped
-    build_query!
   end
 
   def ids
@@ -20,13 +19,13 @@ class HasArrayOf::CollectionProxy
   end
 
   def load
-    @relation.load
+    _relation.load
     self
   end
 
   def records
-    @relation.load
-    records = @relation.instance_variable_get(:@records)
+    _relation.load
+    records = _relation.instance_variable_get(:@records)
     unless @records.equal? records
       @records = records.index_by { |obj| foreign_key_for(obj) }.values_at(*ids)
       @records.compact!
@@ -40,7 +39,7 @@ class HasArrayOf::CollectionProxy
 
   def where!(*args)
     @scope.where!(*args)
-    build_query!
+    @relation = nil
     self
   end
 
@@ -63,30 +62,24 @@ class HasArrayOf::CollectionProxy
     to_a == other
   end
 
-  def mutate_ids
-    @relation.reset
-    ret = yield
-    self.ids = ids
-    build_query!
-    ret
+  def touch_ids
+    @relation = nil
   end
 
   def <<(object)
-    mutate_ids do
-      ids << foreign_key_for(object)
-      self
-    end
+    ids << foreign_key_for(object)
+    touch_ids
+    self
   end
 
   def []=(*index, val)
-    mutate_ids do
-      if val.is_a? Array
-        ids[*index] = val.map { |obj| foreign_key_for(obj) }
-      else
-        ids[*index] = foreign_key_for(val)
-      end
-      val
+    if val.is_a? Array
+      ids[*index] = val.map { |obj| foreign_key_for(obj) }
+    else
+      ids[*index] = foreign_key_for(val)
     end
+    touch_ids
+    val
   end
 
   def collect!
@@ -98,46 +91,41 @@ class HasArrayOf::CollectionProxy
   end
 
   def compact!
-    mutate_ids do
-      ids.compact!
-      self
-    end
+    ids.compact!
+    touch_ids
+    self
   end
 
   def concat(other)
-    mutate_ids do
-      ids.concat(other.map { |obj| foreign_key_for(obj) })
-      self
-    end
+    ids.concat(other.map { |obj| foreign_key_for(obj) })
+    touch_ids
+    self
   end
 
   def delete(object)
     # TODO: optimize
-    mutate_ids do
-      id = ids.delete(foreign_key_for(object))
-      if id
-        @model.find(id)
-      end
+    id = ids.delete(foreign_key_for(object))
+    touch_ids
+    if id
+      @model.find(id)
     end
   end
 
   def delete_at(index)
     # TODO: optimize
-    mutate_ids do
-      id = ids.delete_at(index)
-      if id
-        @model.find(id)
-      end
+    id = ids.delete_at(index)
+    touch_ids
+    if id
+      @model.find(id)
     end
   end
 
   def delete_if
     if block_given?
       hash = ids_to_objects_hash
-      mutate_ids do
-        ids.delete_if { |id| yield hash[id] }
-        self
-      end
+      ids.delete_if { |id| yield hash[id] }
+      touch_ids
+      self
     else
       to_enum(:delete_if)
     end
@@ -145,34 +133,29 @@ class HasArrayOf::CollectionProxy
 
   def fill(*args)
     if block_given?
-      mutate_ids do
-        ids.fill(*args) do |index|
-          foreign_key_for(yield index)
-        end
+      ids.fill(*args) do |index|
+        foreign_key_for(yield index)
       end
     else
-      mutate_ids do
-        obj = args.shift
-        ids.fill(foreign_key_for(obj), *args)
-      end
+      obj = args.shift
+      ids.fill(foreign_key_for(obj), *args)
     end
+    touch_ids
     self
   end
 
   def insert(index, *objects)
-    mutate_ids do
-      ids.insert(index, *objects.map { |obj| foreign_key_for(obj) })
-      self
-    end
+    ids.insert(index, *objects.map { |obj| foreign_key_for(obj) })
+    touch_ids
+    self
   end
 
   def keep_if
     if block_given?
       hash = ids_to_objects_hash
-      mutate_ids do
-        ids.keep_if { |id| yield hash[id] }
-        self
-      end
+      ids.keep_if { |id| yield hash[id] }
+      touch_ids
+      self
     else
       to_enum(:keep_if)
     end
@@ -180,12 +163,9 @@ class HasArrayOf::CollectionProxy
 
   def map!
     if block_given?
-      data = to_a
-      mutate_ids do
-        data.each_with_index do |object, index|
-          ids[index] = foreign_key_for(yield object)
-        end
-      end
+      to_a.each_with_index do |object, index|
+        ids[index] = foreign_key_for(yield object)
+      end.tap { touch_ids }
     else
       to_enum :map!
     end
@@ -193,60 +173,50 @@ class HasArrayOf::CollectionProxy
 
   def pop
     # TODO: optimize
-    mutate_ids do
-      @model.find(ids.pop)
-    end
+    @model.find(ids.pop).tap { touch_ids }
   end
 
   def push(*objects)
-    mutate_ids do
-      ids.push(*objects.map{ |obj| foreign_key_for(obj) })
-      self
-    end
+    ids.push(*objects.map{ |obj| foreign_key_for(obj) })
+    touch_ids
+    self
   end
 
   def reject!
     if block_given?
       hash = ids_to_objects_hash
-      mutate_ids do
-        if ids.reject! { |id| yield hash[id] }
-          self
-        end
-      end
+      if ids.reject! { |id| yield hash[id] }
+        self
+      end.tap { touch_ids }
     else
       to_enum(:reject!)
     end
   end
 
   def replace(other_ary)
-    mutate_ids do
-      ids.replace other_ary.map{ |obj| foreign_key_for(obj) }
-      self
-    end
+    ids.replace other_ary.map{ |obj| foreign_key_for(obj) }
+    touch_ids
+    self
   end
 
   def reverse!
-    mutate_ids do
-      ids.reverse!
-      self
-    end
+    ids.reverse!
+    touch_ids
+    self
   end
 
   def rotate!(count=1)
-    mutate_ids do
-      ids.rotate! count
-      self
-    end
+    ids.rotate! count
+    touch_ids
+    self
   end
 
   def select!
     if block_given?
       hash = ids_to_objects_hash
-      mutate_ids do
-        if ids.select! { |id| yield hash[id] }
-          self
-        end
-      end
+      if ids.select! { |id| yield hash[id] }
+        self
+      end.tap { touch_ids }
     else
       to_enum(:select!)
     end
@@ -254,38 +224,31 @@ class HasArrayOf::CollectionProxy
 
   def shift
     # TODO: optimize
-    mutate_ids do
-      @model.find(ids.shift)
-    end
+    @model.find(ids.shift).tap { touch_ids }
   end
 
   def shuffle!(args={})
-    mutate_ids do
-      ids.shuffle!(args)
-      self
-    end
+    ids.shuffle!(args)
+    touch_ids
+    self
   end
 
   def uniq!
     if block_given?
       hash = ids_to_objects_hash
-      mutate_ids do
-        ids.uniq! do |id|
-          yield hash[id]
-        end
+      ids.uniq! do |id|
+        yield hash[id]
       end
     else
-      mutate_ids do
-        ids.uniq!
-      end
+      ids.uniq!
     end
+    touch_ids
     self
   end
 
   def unshift(*args)
-    mutate_ids do
-      ids.unshift(*args.map{ |obj| foreign_key_for(obj) })
-    end
+    ids.unshift(*args.map{ |obj| foreign_key_for(obj) })
+    touch_ids
     self
   end
 
@@ -299,11 +262,11 @@ class HasArrayOf::CollectionProxy
     index_by{ |obj| foreign_key_for(obj) }
   end
 
-  def build_query!
-    @relation = @scope.merge(@unscoped.where @foreign_key => ids.compact)
+  def _relation
+    @relation ||= @scope.merge(@unscoped.where @foreign_key => ids.compact)
   end
 
   def_delegators :records, :each
-  def_delegators :@relation, :loaded?, :to_sql
+  def_delegators :_relation, :loaded?, :to_sql
   def_delegators :ids, :size, :length
 end
