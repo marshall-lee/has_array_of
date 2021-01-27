@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe HasArrayOf::AssociatedArray::Relation do
+RSpec.describe HasArrayOf::CollectionProxy do
   include_context "Video model"
   include_context "Playlist model"
   include_context "TV series"

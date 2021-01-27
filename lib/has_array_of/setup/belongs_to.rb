@@ -1,4 +1,6 @@
-class HasArrayOf::AssociatedBelongs
+# frozen_string_literal: true
+
+class HasArrayOf::Setup::BelongsTo
   def initialize(model, name, class_name, array_name)
     @class_name = class_name
 

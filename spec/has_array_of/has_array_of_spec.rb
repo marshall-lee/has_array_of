@@ -1,5 +1,5 @@
 
-RSpec.describe HasArrayOf::AssociatedArray do
+RSpec.describe 'has_array_of' do
   include_context "Video model"
   include_context "Playlist model"
   include_context "TV series"

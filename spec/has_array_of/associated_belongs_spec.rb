@@ -1,5 +1,5 @@
 
-RSpec.describe HasArrayOf::AssociatedBelongs do
+RSpec.describe 'belongs_to_array_in_many' do
   include_context "Video model belonging to Playlist"
   include_context "Playlist model"
   include_context "TV series"

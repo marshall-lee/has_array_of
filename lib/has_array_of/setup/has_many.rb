@@ -1,4 +1,4 @@
-class HasArrayOf::AssociatedArray
+class HasArrayOf::Setup::HasMany
   def initialize(owner_model, name, class_name, extension)
     singular_name = name.to_s.singularize
     ids_attribute = "#{singular_name}_ids".to_sym
@@ -10,7 +10,7 @@ class HasArrayOf::AssociatedArray
 
     owner_model.class_eval do
       define_method name do
-        Relation.new(self, setup.model, ids_attribute)
+        HasArrayOf::CollectionProxy.new(self, setup.model, ids_attribute)
       end
 
       define_method "#{name}=" do |objects|

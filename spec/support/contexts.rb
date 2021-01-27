@@ -13,6 +13,7 @@ RSpec.shared_context "Playlist model" do
     end
 
     model do
+      include HasArrayOf::Macro
       has_array_of :videos
     end
   end
@@ -25,6 +26,7 @@ RSpec.shared_context "Video model belonging to Playlist" do
     end
 
     model do
+      include HasArrayOf::Macro
       belongs_to_array_in_many :playlists
     end
   end
