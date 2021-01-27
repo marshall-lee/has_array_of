@@ -1,8 +1,8 @@
 language: ruby
 rvm:
-  - 2.4
   - 2.5
   - 2.6
+  - 2.7
 
 gemfile:
   - gemfiles/activerecord_4.2.gemfile
@@ -10,14 +10,7 @@ gemfile:
   - gemfiles/activerecord_5.1.gemfile
   - gemfiles/activerecord_5.2.gemfile
   - gemfiles/activerecord_6.0.gemfile
-  - gemfiles/activerecord_edge.gemfile
-
-matrix:
-  exclude:
-    - rvm: 2.4
-      gemfile: gemfiles/activerecord_edge.gemfile
-    - rvm: 2.4
-      gemfile: gemfiles/activerecord_6.0.gemfile
+  - gemfiles/activerecord_6.1.gemfile
 
 before_script:
   - "bundle exec rake db:setup PGUSER=postgres"

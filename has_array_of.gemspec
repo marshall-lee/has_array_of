@@ -25,10 +25,10 @@ Gem::Specification.new do |s|
   s.add_dependency 'activerecord', '>= 4.2'
   s.add_dependency 'railties', '>= 4.2'
 
-  s.add_development_dependency 'bundler', '>= 1.17'
+  s.add_development_dependency 'bundler', '>= 2'
   s.add_development_dependency 'appraisal'
   s.add_development_dependency 'rake', '~> 13.0'
   s.add_development_dependency 'rspec', '~> 3.9.0'
-  s.add_development_dependency 'database_cleaner', '~> 1.7.0'
-  s.add_development_dependency 'with_model', '~> 2.1.2'
+  s.add_development_dependency 'database_cleaner', '~> 1.8.5'
+  s.add_development_dependency 'with_model', '~> 2.1.5'
 end

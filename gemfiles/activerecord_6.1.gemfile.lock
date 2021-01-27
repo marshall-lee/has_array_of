@@ -6,7 +6,7 @@ GIT
       activerecord (>= 5.2)
 
 PATH
-  remote: .
+  remote: ..
   specs:
     has_array_of (0.0.1)
       activerecord (>= 4.2)
@@ -108,10 +108,12 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  activerecord (~> 6.1.1)
   appraisal
   bundler (>= 2)
   database_cleaner (~> 1.8.5)
   has_array_of!
+  pg (>= 0.18, < 2.0)
   pry
   pry-byebug
   rake (~> 13.0)
