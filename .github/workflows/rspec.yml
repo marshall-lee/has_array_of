@@ -23,21 +23,16 @@ jobs:
     strategy:
       matrix:
         ruby:
-          - 2.4.x
           - 2.5.x
           - 2.6.x
+          - 2.7.x
         gemfile:
           - gemfiles/activerecord_4.2.gemfile
           - gemfiles/activerecord_5.0.gemfile
           - gemfiles/activerecord_5.1.gemfile
           - gemfiles/activerecord_5.2.gemfile
           - gemfiles/activerecord_6.0.gemfile
-          - gemfiles/activerecord_edge.gemfile
-        exclude:
-          - ruby: 2.4.x
-            gemfile: gemfiles/activerecord_6.0.gemfile
-          - ruby: 2.4.x
-            gemfile: gemfiles/activerecord_edge.gemfile
+          - gemfiles/activerecord_6.1.gemfile
     env:
       BUNDLE_GEMFILE: ${{ format('{0}/{1}', github.workspace, matrix.gemfile) }}
       BUNDLE_PATH: ${{ format('{0}/vendor/bundle', github.workspace) }}

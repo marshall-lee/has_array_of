@@ -23,6 +23,7 @@ appraise "activerecord-6.0" do
   gem 'pg', '>= 0.18', '< 2.0'
 end
 
-appraise "activerecord-edge" do
-  gem "activerecord", git: "https://github.com/rails/rails"
+appraise "activerecord-6.1" do
+  gem 'activerecord', '~> 6.1.1'
+  gem 'pg', '>= 0.18', '< 2.0'
 end
