@@ -2,22 +2,23 @@ class HasArrayOf::CollectionProxy
   def initialize(owner, model, ids_attr, scope: model.all)
     @owner = owner
     @model = model
-    @foreign_id_attr = model.primary_key
+    @foreign_key = model.primary_key
     @ids_attr = ids_attr
     @scope = scope
+    @unscoped = model.unscoped
     build_query!
   end
 
   def ids
-    owner[ids_attr]
+    @owner[@ids_attr]
   end
 
   def ids=(new_ids)
-    owner[ids_attr] = new_ids
+    @owner[@ids_attr] = new_ids
   end
 
   def load
-    relation.load
+    @relation.load
     self
   end
 
@@ -25,7 +26,7 @@ class HasArrayOf::CollectionProxy
     @relation.load
     records = @relation.instance_variable_get(:@records)
     unless @records.equal? records
-      @records = records.index_by(&foreign_id_for_proc).values_at(*ids)
+      @records = records.index_by { |obj| foreign_key_for(obj) }.values_at(*ids)
       @records.compact!
     end
     @records
@@ -61,7 +62,7 @@ class HasArrayOf::CollectionProxy
   end
 
   def mutate_ids
-    relation.reset
+    @relation.reset
     ret = yield
     self.ids = ids
     build_query!
@@ -70,7 +71,7 @@ class HasArrayOf::CollectionProxy
 
   def <<(object)
     mutate_ids do
-      ids << foreign_id_for(object)
+      ids << foreign_key_for(object)
       self
     end
   end
@@ -78,9 +79,9 @@ class HasArrayOf::CollectionProxy
   def []=(*index, val)
     mutate_ids do
       if val.is_a? Array
-        ids[*index] = val.map(&foreign_id_for_proc)
+        ids[*index] = val.map { |obj| foreign_key_for(obj) }
       else
-        ids[*index] = foreign_id_for(val)
+        ids[*index] = foreign_key_for(val)
       end
       val
     end
@@ -103,7 +104,7 @@ class HasArrayOf::CollectionProxy
 
   def concat(other)
     mutate_ids do
-      ids.concat(other.map(&foreign_id_for_proc))
+      ids.concat(other.map { |obj| foreign_key_for(obj) })
       self
     end
   end
@@ -111,7 +112,7 @@ class HasArrayOf::CollectionProxy
   def delete(object)
     # TODO: optimize
     mutate_ids do
-      id = ids.delete(foreign_id_for(object))
+      id = ids.delete(foreign_key_for(object))
       if id
         @model.find(id)
       end
@@ -144,13 +145,13 @@ class HasArrayOf::CollectionProxy
     if block_given?
       mutate_ids do
         ids.fill(*args) do |index|
-          foreign_id_for(yield index)
+          foreign_key_for(yield index)
         end
       end
     else
       mutate_ids do
         obj = args.shift
-        ids.fill(foreign_id_for(obj), *args)
+        ids.fill(foreign_key_for(obj), *args)
       end
     end
     self
@@ -158,7 +159,7 @@ class HasArrayOf::CollectionProxy
 
   def insert(index, *objects)
     mutate_ids do
-      ids.insert(index, *objects.map(&foreign_id_for_proc))
+      ids.insert(index, *objects.map { |obj| foreign_key_for(obj) })
       self
     end
   end
@@ -180,7 +181,7 @@ class HasArrayOf::CollectionProxy
       data = to_a
       mutate_ids do
         data.each_with_index do |object, index|
-          ids[index] = foreign_id_for(yield object)
+          ids[index] = foreign_key_for(yield object)
         end
       end
     else
@@ -197,7 +198,7 @@ class HasArrayOf::CollectionProxy
 
   def push(*objects)
     mutate_ids do
-      ids.push(*objects.map(&foreign_id_for_proc))
+      ids.push(*objects.map{ |obj| foreign_key_for(obj) })
       self
     end
   end
@@ -217,7 +218,7 @@ class HasArrayOf::CollectionProxy
 
   def replace(other_ary)
     mutate_ids do
-      ids.replace other_ary.map(&foreign_id_for_proc)
+      ids.replace other_ary.map{ |obj| foreign_key_for(obj) }
       self
     end
   end
@@ -281,37 +282,28 @@ class HasArrayOf::CollectionProxy
 
   def unshift(*args)
     mutate_ids do
-      ids.unshift(*args.map(&foreign_id_for_proc))
+      ids.unshift(*args.map{ |obj| foreign_key_for(obj) })
     end
     self
   end
 
   private
 
-  def foreign_id_for(obj)
-    obj[foreign_id_attr] if obj
-  end
-
-  def foreign_id_for_proc
-    @foreign_id_for_proc ||= method(:foreign_id_for)
+  def foreign_key_for(obj)
+    obj[@foreign_key] if obj
   end
 
   def ids_to_objects_hash
-    index_by(&foreign_id_for_proc)
+    index_by{ |obj| foreign_key_for(obj) }
   end
 
   def build_query!
-    @relation = @model.where(foreign_id_attr => ids.compact).merge(@scope)
+    @relation = @scope.merge(@unscoped.where @foreign_key => ids.compact)
   end
 
-  attr_reader :owner, :ids_attr
-  attr_reader :foreign_id_attr
-  attr_reader :relation
   delegate :each, to: :records
 
   # relation_methods = ::ActiveRecord::Relation.public_instance_methods - instance_methods - private_instance_methods
-  delegate :loaded?,
-            :to_sql,
-            :to => :relation
+  delegate :loaded?, :to_sql, :to => :@relation
   delegate :size, :length, :to => :ids
 end
