@@ -1,22 +1,18 @@
 class HasArrayOf::CollectionProxy
   extend Forwardable
 
-  # TODO: pass Setup object
-  def initialize(owner, model, ids_attr, scope: model.all)
+  def initialize(setup, owner, scope: setup.model.all)
+    @setup = setup
     @owner = owner
-    @model = model
-    @foreign_key = model.primary_key
-    @ids_attr = ids_attr
     @scope = scope
-    @unscoped = model.unscoped
   end
 
   def ids
-    @owner[@ids_attr]
+    @owner[@setup.ids_attribute]
   end
 
   def ids=(new_ids)
-    @owner[@ids_attr] = new_ids
+    @owner[@setup.ids_attribute] = new_ids
   end
 
   def load
@@ -35,7 +31,7 @@ class HasArrayOf::CollectionProxy
   end
 
   def where(*args)
-    self.class.new(@owner, @model, @ids_attr, scope: @scope.where(*args))
+    self.class.new(@setup, @owner, scope: @scope.where(*args))
   end
 
   def where!(*args)
@@ -108,7 +104,7 @@ class HasArrayOf::CollectionProxy
     id = ids.delete(try_foreign_key(object))
     touch_ids
     if id
-      @model.find(id)
+      @setup.model.find(id)
     end
   end
 
@@ -117,7 +113,7 @@ class HasArrayOf::CollectionProxy
     id = ids.delete_at(index)
     touch_ids
     if id
-      @model.find(id)
+      @setup.model.find(id)
     end
   end
 
@@ -174,7 +170,7 @@ class HasArrayOf::CollectionProxy
 
   def pop
     # TODO: optimize
-    @model.find(ids.pop).tap { touch_ids }
+    @setup.model.find(ids.pop).tap { touch_ids }
   end
 
   def push(*objects)
@@ -225,11 +221,11 @@ class HasArrayOf::CollectionProxy
 
   def shift
     # TODO: optimize
-    @model.find(ids.shift).tap { touch_ids }
+    @setup.model.find(ids.shift).tap { touch_ids }
   end
 
-  def shuffle!(args={})
-    ids.shuffle!(args)
+  def shuffle!(*args)
+    ids.shuffle!(*args)
     touch_ids
     self
   end
@@ -253,10 +249,18 @@ class HasArrayOf::CollectionProxy
     self
   end
 
+  # def method_missing(method_name, *args, &block)
+  # TODO
+  # end
+
+  # def respond_to_missing?(method_name, _)
+  # TODO
+  # end
+
   private
 
   def try_foreign_key(obj)
-    obj[@foreign_key] if obj
+    obj[@setup.foreign_key] if obj
   end
 
   def ids_to_objects_hash
@@ -264,7 +268,7 @@ class HasArrayOf::CollectionProxy
   end
 
   def _relation
-    @relation ||= @scope.merge(@unscoped.where @foreign_key => ids.compact)
+    @relation ||= @scope.merge(@setup.model.unscoped.where(@setup.foreign_key => ids.compact))
   end
 
   def_delegators :records, :each
