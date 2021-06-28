@@ -40,10 +40,6 @@ GEM
       minitest (>= 5.1)
       tzinfo (~> 2.0)
       zeitwerk (~> 2.3)
-    appraisal (2.3.0)
-      bundler
-      rake
-      thor (>= 0.14.0)
     builder (3.2.4)
     byebug (11.1.3)
     coderay (1.1.3)
@@ -108,7 +104,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  appraisal
   bundler (>= 2)
   database_cleaner (~> 1.8.5)
   has_array_of!
@@ -119,4 +114,4 @@ DEPENDENCIES
   with_model!
 
 BUNDLED WITH
-   2.1.4
+   2.2.15
