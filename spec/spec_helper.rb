@@ -1,5 +1,5 @@
 require 'bundler/setup'
-require 'rails'
+require 'active_record'
 require 'database_cleaner'
 require 'has_array_of'
 
