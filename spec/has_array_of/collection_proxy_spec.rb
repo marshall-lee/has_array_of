@@ -31,33 +31,12 @@ RSpec.describe HasArrayOf::CollectionProxy do
       expect(two_food_chains_and_pony.videos.map(&:id)).to eq(two_food_chains_and_pony_video_ids)
     end
 
-    it "should correctly deal with nil" do
-      playlist = Playlist.create video_ids: [nil, something_big.id, nil]
-      expect(playlist.videos).to eq([something_big])
-      playlist = Playlist.create video_ids: [nil, nil, nil]
-      expect(playlist.videos).to eq([])
-    end
-
     describe "when chaining with other queries" do
       let(:playlist) { two_food_chains_and_pony }
 
       it "should fetch correct objects" do
         expect(playlist.videos.where("title like '%Pony%'")).to eq([return_of_harmony])
         expect(playlist.videos.where("title like '%Adventure%'")).to eq([food_chain, food_chain])
-      end
-
-      describe "when having nils" do
-        before do
-          playlist.videos << nil
-          playlist.save
-        end
-
-        it "should fetch correct objects" do
-          videos = playlist.videos
-          expect(videos.where("title like '%Pony%'")).to eq([return_of_harmony])
-          videos.where!("title like '%Adventure%'")
-          expect(videos.to_a).to eq([food_chain, food_chain])
-        end
       end
     end
   end
@@ -117,12 +96,6 @@ RSpec.describe HasArrayOf::CollectionProxy do
       videos << escape_from_the_citadel
       expect(videos).not_to be_loaded
     end
-
-    it "should correctly append nil values" do
-      videos = my_cool_list.videos
-      videos << nil
-      expect(my_cool_list.video_ids).to eq([*my_cool_video_ids, nil])
-    end
   end
 
   describe "method []=" do
@@ -163,12 +136,6 @@ RSpec.describe HasArrayOf::CollectionProxy do
         expect(videos).to be_loaded
         videos[0] = escape_from_the_citadel
         expect(videos).not_to be_loaded
-      end
-
-      it "should correctly deal with nil values" do
-        videos = my_cool_list.videos
-        videos[0] = nil
-        expect(my_cool_list.video_ids[0]).to be_nil
       end
     end
 
@@ -230,12 +197,6 @@ RSpec.describe HasArrayOf::CollectionProxy do
         expect(videos).to be_loaded
         videos[1,2] = [return_of_harmony, something_big]
         expect(videos).not_to be_loaded
-      end
-
-      it "should correctly deal with nil values" do
-        videos = another_playlist.videos
-        videos[1,2] = [nil, nil, nil]
-        expect(another_playlist.video_ids).to eq([harlem_shake.id, nil, nil, nil, chandelier.id])
       end
     end
   end

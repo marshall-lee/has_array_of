@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/Casecommons/with_model
-  revision: e097c60d628747f81306993142b822e81fd71921
+  revision: de1bcfa523f83d02a3fd85902d8447487d7db3c7
   specs:
-    with_model (2.1.5)
+    with_model (2.1.6)
       activerecord (>= 5.2)
 
 PATH
@@ -15,34 +15,33 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    activemodel (6.1.4.1)
-      activesupport (= 6.1.4.1)
-    activerecord (6.1.4.1)
-      activemodel (= 6.1.4.1)
-      activesupport (= 6.1.4.1)
-    activesupport (6.1.4.1)
+    activemodel (7.0.3.1)
+      activesupport (= 7.0.3.1)
+    activerecord (7.0.3.1)
+      activemodel (= 7.0.3.1)
+      activesupport (= 7.0.3.1)
+    activesupport (7.0.3.1)
       concurrent-ruby (~> 1.0, >= 1.0.2)
       i18n (>= 1.6, < 2)
       minitest (>= 5.1)
       tzinfo (~> 2.0)
-      zeitwerk (~> 2.3)
     byebug (11.1.3)
     coderay (1.1.3)
-    concurrent-ruby (1.1.9)
+    concurrent-ruby (1.1.10)
     database_cleaner (1.8.5)
-    diff-lcs (1.4.4)
-    i18n (1.8.10)
+    diff-lcs (1.5.0)
+    i18n (1.12.0)
       concurrent-ruby (~> 1.0)
     method_source (1.0.0)
-    minitest (5.14.4)
-    pg (1.2.3)
+    minitest (5.16.2)
+    pg (1.4.2)
     pry (0.13.1)
       coderay (~> 1.1)
       method_source (~> 1.0)
     pry-byebug (3.9.0)
       byebug (~> 11.0)
       pry (~> 0.13.0)
-    rake (13.0.3)
+    rake (13.0.6)
     rspec (3.9.0)
       rspec-core (~> 3.9.0)
       rspec-expectations (~> 3.9.0)
@@ -56,12 +55,11 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.9.0)
     rspec-support (3.9.4)
-    tzinfo (2.0.4)
+    tzinfo (2.0.5)
       concurrent-ruby (~> 1.0)
-    zeitwerk (2.5.1)
 
 PLATFORMS
-  ruby
+  x86_64-darwin-21
 
 DEPENDENCIES
   bundler (>= 2)
@@ -74,4 +72,4 @@ DEPENDENCIES
   with_model!
 
 BUNDLED WITH
-   2.2.22
+   2.5.15

@@ -1,43 +1,90 @@
 class HasArrayOf::CollectionProxy
   extend Forwardable
 
-  def initialize(setup, owner, scope: setup.model.all)
-    @setup = setup
-    @owner = owner
-    @scope = scope
+  class << self
+    def subclass_for(setup)
+      Class.new(self) do
+        @setup = setup
+      end
+    end
+
+    def __has_array_of_setup__
+      @setup
+    end
   end
 
+  def initialize(owner, scope: self.class.__has_array_of_setup__.model.all)
+    @owner = owner
+    @scope = scope
+    @setup = self.class.__has_array_of_setup__
+  end
+
+  # TODO: come up with a custom type that resets the association if value modified.
   def ids
     @owner[@setup.ids_attribute]
   end
 
-  def ids=(new_ids)
-    @owner[@setup.ids_attribute] = new_ids
+  def ids=(ids)
+    # TODO: Store @records as Hash { 123 => model }
+    @records = nil
+
+    ids_attribute = @setup.ids_attribute
+    @owner[ids_attribute] = ids
+    @ids = @owner[ids_attribute].dup
   end
 
   def load
-    _relation.load
+    @records ||= begin
+      ids = self.ids.dup
+      ids.compact!
+      records = build_relation(ids).records
+      idx = records.index_by { |obj| @setup.obj_key(obj) }
+
+      records = []
+      ids.map! do |id|
+        if (obj = idx[id])
+          records << obj
+          id
+        end
+      end
+      ids.compact!
+      @ids = ids
+      records
+    end
     self
+  end
+
+  def loaded?
+    !@records.nil?
   end
 
   def records
-    _relation.load
-    records = _relation.instance_variable_get(:@records)
-    unless @records.equal? records
-      @records = records.index_by { |obj| try_foreign_key(obj) }.values_at(*ids)
-      @records.compact!
-    end
+    load_target
+  end
+  alias target records
+
+  def load_target
+    load
     @records
   end
 
-  def where(*args)
-    self.class.new(@setup, @owner, scope: @scope.where(*args))
+  def target=(objects)
+    @ids = objects.map { |obj| @setup.obj_key!(obj) }
+    @owner[@setup.ids_attribute] = @ids
+    @records = objects.to_ary.dup
   end
 
-  def where!(*args)
-    @scope.where!(*args)
-    @relation = nil
-    self
+  def size
+    @records.size
+  end
+  alias length size
+
+  def to_sql
+    build_relation.to_sql
+  end
+
+  def where(*args)
+    self.class.new(@owner, scope: @scope.where(*args))
   end
 
   def to_ary
@@ -51,227 +98,228 @@ class HasArrayOf::CollectionProxy
 
   include Enumerable
 
-  def pluck(*column_names)
-    raise NotImplementedError
-  end
-
   def ==(other)
-    to_a == other
-  end
-
-  def touch_ids
-    @relation = nil
+    other == records
   end
 
   def <<(object)
-    ids << try_foreign_key(object)
-    touch_ids
+    records << object
+    @ids << @setup.obj_key!(object)
     self
   end
 
-  def []=(*index, val)
-    if val.is_a? Array
-      ids[*index] = val.map { |obj| try_foreign_key(obj) }
-    else
-      ids[*index] = try_foreign_key(val)
-    end
-    touch_ids
-    val
-  end
-
-  def collect!
-    if block_given
-      map!(Proc.new)
-    else
-      to_enum(:collect!)
-    end
+  def []=(index, obj)
+    raise_on_index_out_of_range!(index)
+    @ids[index] = @setup.obj_key!(obj)
+    records[index] = obj
   end
 
   def compact!
-    ids.compact!
-    touch_ids
     self
   end
 
-  def concat(other)
-    ids.concat(other.map { |obj| try_foreign_key(obj) })
-    touch_ids
+  def concat(objects)
+    ids = objects.map { |obj| @setup.obj_key!(obj) }
+    records.concat(objects)
+    @ids.concat(ids)
+    sync_ids!
     self
+  end
+
+  def count(...)
+    records.count(...)
   end
 
   def delete(object)
-    # TODO: optimize
-    id = ids.delete(try_foreign_key(object))
-    touch_ids
-    if id
-      @setup.model.find(id)
+    @setup.raise_on_type_mismatch!(object)
+    if (ret = records.delete(object))
+      reset_ids!
     end
+    ret
   end
 
   def delete_at(index)
-    # TODO: optimize
-    id = ids.delete_at(index)
-    touch_ids
-    if id
-      @setup.model.find(id)
+    if (ret = delete_at index)
+      @ids.delete_at(index)
+      sync_ids!
     end
-  end
-
-  def delete_if
-    if block_given?
-      hash = ids_to_objects_hash
-      ids.delete_if { |id| yield hash[id] }
-      touch_ids
-      self
-    else
-      to_enum(:delete_if)
-    end
+    ret
   end
 
   def fill(*args)
     if block_given?
-      ids.fill(*args) do |index|
-        try_foreign_key(yield index)
+      fill_ids = []
+      new_records = records.dup
+      new_records.fill(*args) do |index|
+        obj = yield index
+        fill_ids << @setup.obj_key!(obj)
       end
+      @records = new_records
+      @ids.fill { |index| fill_ids[index] }
     else
-      obj = args.shift
-      ids.fill(try_foreign_key(obj), *args)
+      obj, *args = args
+      id = @setup.obj_key!(obj)
+      records.fill(obj, *args)
+      @ids.fill(id, *args)
     end
-    touch_ids
+    sync_ids!
     self
   end
 
   def insert(index, *objects)
-    ids.insert(index, *objects.map { |obj| try_foreign_key(obj) })
-    touch_ids
+    ids = objects.map { |obj| @setup.obj_key!(obj) }
+    records.insert(index, *objects)
+    @ids.insert(index, *ids)
+    sync_ids!
     self
-  end
-
-  def keep_if
-    if block_given?
-      hash = ids_to_objects_hash
-      ids.keep_if { |id| yield hash[id] }
-      touch_ids
-      self
-    else
-      to_enum(:keep_if)
-    end
   end
 
   def map!
     if block_given?
-      to_a.each_with_index do |object, index|
-        ids[index] = try_foreign_key(yield object)
-      end.tap { touch_ids }
+      ids = @ids
+      records.map!.with_index do |obj, index|
+        obj = yield obj
+        ids[index] = @setup.obj_key!(obj)
+        obj
+      end
+      sync_ids!
+      self
     else
       to_enum :map!
     end
   end
+  alias collect! map!
 
-  def pop
-    # TODO: optimize
-    @setup.model.find(ids.pop).tap { touch_ids }
+  def pluck(*column_names)
+    if @records
+      model = @setup.model
+      if (column_names.map(&:to_s) - model.attribute_names - model.attribute_aliases.keys).empty?
+        return @records.pluck(*column_names)
+      end
+    end
+    build_relation.pluck(*column_names)
   end
 
-  def push(*objects)
-    ids.push(*objects.map { |obj| try_foreign_key(obj) })
-    touch_ids
+  def pop(...)
+    ret = records.pop(...)
+    @ids.pop(...)
+    sync_ids!
+    ret
+  end
+
+  def prepend(*objects)
+    ids = objects.map! { |obj| @setup.obj_key!(obj) }
+    records.prepend(*objects)
+    @ids.prepend(*ids)
+    sync_ids!
     self
   end
+  alias unshift prepend
+
+  def push(*objects)
+    ids = objects.map! { |obj| @setup.obj_key!(obj) }
+    records.push(*objects)
+    @ids.push(*ids)
+    sync_ids!
+    self
+  end
+  alias append push
 
   def reject!
     if block_given?
-      hash = ids_to_objects_hash
-      if ids.reject! { |id| yield hash[id] }
-        self
-      end.tap { touch_ids }
+      ids = []
+      ret = records.reject! do |obj|
+        unless (ret1 = yield obj)
+          ids << @setup.obj_key(obj)
+        end
+        ret1
+      end
+      self._ids = ids
+      self if ret
     else
-      to_enum(:reject!)
+      to_enum :reject!
     end
   end
+  alias delete_if reject!
 
-  def replace(other_ary)
-    ids.replace other_ary.map { |obj| try_foreign_key(obj) }
-    touch_ids
+  def replace(objects)
+    self.target = objects
     self
   end
 
   def reverse!
-    ids.reverse!
-    touch_ids
+    records.reverse!
+    @ids.reverse!
+    sync_ids!
     self
   end
 
-  def rotate!(count=1)
-    ids.rotate! count
-    touch_ids
+  def rotate!(...)
+    records.rotate!(...)
+    @ids.rotate!(...)
+    sync_ids!
     self
   end
 
   def select!
     if block_given?
-      hash = ids_to_objects_hash
-      if ids.select! { |id| yield hash[id] }
-        self
-      end.tap { touch_ids }
-    else
-      to_enum(:select!)
-    end
-  end
-
-  def shift
-    # TODO: optimize
-    @setup.model.find(ids.shift).tap { touch_ids }
-  end
-
-  def shuffle!(*args)
-    ids.shuffle!(*args)
-    touch_ids
-    self
-  end
-
-  def uniq!
-    if block_given?
-      hash = ids_to_objects_hash
-      ids.uniq! do |id|
-        yield hash[id]
+      ids = []
+      records.select! do |obj|
+        if (ret = yield obj)
+          ids << @setup.obj_key(obj)
+        end
+        ret
       end
+      self._ids = ids
+      self
     else
-      ids.uniq!
+      to_enum :select!
     end
-    touch_ids
+  end
+  alias keep_if reject!
+
+  def shift(...)
+    ret = records.shift(...)
+    @ids.shift(...)
+    ret
+  end
+
+  def shuffle!(...)
+    records.shuffle!(...)
+    reset_ids!
     self
   end
 
-  def unshift(*args)
-    ids.unshift(*args.map { |obj| try_foreign_key(obj) })
-    touch_ids
+  def uniq!(...)
+    records.uniq!(...)
+    reset_ids!
     self
   end
-
-  # def method_missing(method_name, *args, &block)
-  # TODO
-  # end
-
-  # def respond_to_missing?(method_name, _)
-  # TODO
-  # end
 
   private
 
-  def try_foreign_key(obj)
-    obj[@setup.foreign_key] if obj
+  def reset_ids!
+    self._ids = records.map { |obj| @setup.obj_key(obj) }
   end
 
-  def ids_to_objects_hash
-    index_by { |obj| try_foreign_key(obj) }
+  def _ids=(ids)
+    @ids = ids
+    @owner[@setup.ids_attribute] = ids
   end
 
-  def _relation
-    @relation ||= @scope.merge(@setup.model.unscoped.where(@setup.foreign_key => ids.compact))
+  def sync_ids!
+    @owner[@setup.ids_attribute] = @ids
   end
 
-  def_delegators :records, :each
-  def_delegators :_relation, :loaded?, :to_sql
-  def_delegators :ids, :size, :length
+  def raise_on_index_out_of_range!(index)
+    raise ArgumentError, 'index must be a Fixnum' unless index.is_a?(Integer)
+
+    if (index >= records.size) || (index.negative? && (-index) > records.size)
+      raise ArgumentError, "index #{index} is out of bounds"
+    end
+  end
+
+  def build_relation(ids = self.ids.compact)
+    @scope.merge(@setup.model.unscoped.where(@setup.model_pkey => ids))
+  end
 end

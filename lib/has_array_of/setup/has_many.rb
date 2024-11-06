@@ -1,30 +1,30 @@
 class HasArrayOf::Setup::HasMany
-  attr_reader :ids_attribute
+  attr_reader :owner_model, :name, :ids_attribute
 
   def initialize(owner_model, name, class_name, extension)
     singular_name = name.to_s.singularize
     @class_name = class_name
     @ids_attribute = ids_attribute = "#{singular_name}_ids".to_sym
-    @primary_key = primary_key = owner_model.primary_key
+    @owner_model = owner_model
     @name = name
 
     setup = self
 
     owner_model.class_eval do
-      define_method name do
-        # TODO: invoke a subclass of CollectionProxy
-        HasArrayOf::CollectionProxy.new(setup, self)
+      define_singleton_method("__has_array_of_#{name}_setup__") { setup }
+    end
+
+    owner_model.class_eval <<~RUBY
+      def #{name}
+        @__has_array_of_#{name}__ ||= self.class.__has_array_of_#{name}_setup__.collection_proxy_class.new(self)
       end
 
-      define_method "#{name}=" do |objects|
-        ids = if objects.respond_to? :pluck
-                objects.pluck(primary_key)
-              else
-                objects.map { |obj| setup.try_pkey(obj) }
-              end
-        write_attribute(ids_attribute, ids)
+      def #{name}=(objects)
+        (@__has_array_of_#{name}__ ||= self.class.__has_array_of_#{name}_setup__.collection_proxy_class.new(self)).target = objects
       end
+    RUBY
 
+    owner_model.class_eval do
       define_singleton_method "with_#{name}_containing" do |*args|
         ids = setup.coerce_ids(*args)
         if ids.empty?
@@ -54,8 +54,27 @@ class HasArrayOf::Setup::HasMany
     end
   end
 
-  def try_pkey(obj)
-    obj[@primary_key] if obj
+  def collection_proxy_class
+    class_name = (@collection_proxy_class_name ||= :"HasArrayOf_#{@name.to_s.camelize}_CollectionProxy")
+    return @owner_model.const_get(class_name, false) if @owner_model.const_defined?(class_name, false)
+
+    @owner_model.const_set(
+      class_name,
+      ::HasArrayOf::CollectionProxy.subclass_for(self)
+    )
+  end
+
+  def try_obj_key(obj)
+    obj[model_pkey] if obj
+  end
+
+  def obj_key!(obj)
+    raise_on_type_mismatch!(obj)
+    obj[model_pkey]
+  end
+
+  def obj_key(obj)
+    obj[model_pkey]
   end
 
   def coerce_ids(first_obj, *rest_objs)
@@ -64,7 +83,7 @@ class HasArrayOf::Setup::HasMany
     else
       [first_obj, *rest_objs]
     end
-    ary.map { |obj| try_pkey(obj) }
+    ary.map { |obj| try_obj_key(obj) }
   end
 
   def model
@@ -72,7 +91,13 @@ class HasArrayOf::Setup::HasMany
     @model ||= @class_name.constantize
   end
 
-  def foreign_key
-    @foreign_key ||= model.primary_key
+  def model_pkey
+    @model_pkey ||= model.primary_key
+  end
+
+  def raise_on_type_mismatch!(obj)
+    unless obj.is_a?(model)
+      raise ArgumentError, "#{owner_model.name}##{name} only accepts #{model.name} object"
+    end
   end
 end
